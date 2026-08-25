@@ -1,0 +1,224 @@
+{
+  "id": "five-module-demo",
+  "name": "5-Module Spacecraft Fire Demo",
+  "missionPhase": "orbit",
+  "modules": {
+    "mod-habitat": {
+      "id": "mod-habitat",
+      "name": "Habitat",
+      "type": "habitat",
+      "pressure": 101.3,
+      "oxygenFraction": 0.21,
+      "crew": [
+        {
+          "id": "crew-commander",
+          "name": "Commander Vega",
+          "role": "Commander",
+          "providesFunctions": ["command", "navigation", "eva_ops"]
+        },
+        {
+          "id": "crew-pilot",
+          "name": "Pilot Reyes",
+          "role": "Pilot",
+          "providesFunctions": ["navigation", "propulsion_ops", "docking"]
+        }
+      ],
+      "equipment": [
+        {
+          "id": "eq-hab-ls",
+          "name": "Backup Life Support",
+          "type": "life_support",
+          "state": "operational",
+          "providesCapabilities": ["habitation", "emergency_life_support"]
+        },
+        {
+          "id": "eq-hab-comms",
+          "name": "Primary Communications",
+          "type": "comms",
+          "state": "operational",
+          "providesCapabilities": ["communications"]
+        }
+      ],
+      "position": { "x": 100, "y": 200 }
+    },
+    "mod-storage": {
+      "id": "mod-storage",
+      "name": "Storage",
+      "type": "storage",
+      "pressure": 101.3,
+      "oxygenFraction": 0.21,
+      "crew": [],
+      "equipment": [
+        {
+          "id": "eq-stor-fuel",
+          "name": "Fuel Reserve",
+          "type": "fuel",
+          "state": "operational",
+          "providesCapabilities": ["propulsion_reserve", "rcs_reserve"]
+        },
+        {
+          "id": "eq-stor-fire",
+          "name": "Fire Suppression System",
+          "type": "fire_suppression",
+          "state": "operational",
+          "providesCapabilities": ["fire_suppression"]
+        }
+      ],
+      "position": { "x": 350, "y": 200 }
+    },
+    "mod-life-support": {
+      "id": "mod-life-support",
+      "name": "Life Support",
+      "type": "life_support",
+      "pressure": 101.3,
+      "oxygenFraction": 0.21,
+      "crew": [
+        {
+          "id": "crew-engineer",
+          "name": "Engineer Park",
+          "role": "Engineer",
+          "providesFunctions": ["life_support_ops", "repair", "power_ops"]
+        }
+      ],
+      "equipment": [
+        {
+          "id": "eq-ls-o2",
+          "name": "Oxygen Generator",
+          "type": "life_support",
+          "state": "operational",
+          "providesCapabilities": ["oxygen_supply", "habitation"]
+        },
+        {
+          "id": "eq-ls-co2",
+          "name": "CO2 Scrubber",
+          "type": "life_support",
+          "state": "operational",
+          "providesCapabilities": ["co2_removal", "habitation"]
+        }
+      ],
+      "position": { "x": 350, "y": 380 }
+    },
+    "mod-power": {
+      "id": "mod-power",
+      "name": "Power",
+      "type": "power",
+      "pressure": 101.3,
+      "oxygenFraction": 0.21,
+      "crew": [
+        {
+          "id": "crew-specialist",
+          "name": "Specialist Kim",
+          "role": "Mission Specialist",
+          "providesFunctions": ["power_ops", "gnc_ops", "repair"]
+        }
+      ],
+      "equipment": [
+        {
+          "id": "eq-pwr-reactor",
+          "name": "Main Reactor",
+          "type": "power",
+          "state": "operational",
+          "providesCapabilities": ["electrical_power", "thermal_control"]
+        },
+        {
+          "id": "eq-pwr-solar",
+          "name": "Solar Array Controller",
+          "type": "power",
+          "state": "operational",
+          "providesCapabilities": ["electrical_power"]
+        }
+      ],
+      "position": { "x": 600, "y": 380 }
+    },
+    "mod-propulsion": {
+      "id": "mod-propulsion",
+      "name": "Propulsion",
+      "type": "propulsion",
+      "pressure": 60.0,
+      "oxygenFraction": 0.0,
+      "crew": [],
+      "equipment": [
+        {
+          "id": "eq-prop-main",
+          "name": "Main Engine",
+          "type": "propulsion",
+          "state": "operational",
+          "providesCapabilities": ["main_propulsion", "return_capability"]
+        },
+        {
+          "id": "eq-prop-rcs",
+          "name": "RCS Thrusters",
+          "type": "propulsion",
+          "state": "operational",
+          "providesCapabilities": ["attitude_control", "rcs"]
+        },
+        {
+          "id": "eq-prop-gnc",
+          "name": "Flight Computer",
+          "type": "gnc",
+          "state": "operational",
+          "providesCapabilities": ["navigation", "attitude_control"]
+        }
+      ],
+      "position": { "x": 600, "y": 200 }
+    }
+  },
+  "connections": {
+    "conn-hab-stor": {
+      "id": "conn-hab-stor",
+      "source": "mod-habitat",
+      "target": "mod-storage",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "high"
+    },
+    "conn-stor-ls": {
+      "id": "conn-stor-ls",
+      "source": "mod-storage",
+      "target": "mod-life-support",
+      "type": "imv",
+      "state": "open",
+      "ventilationOn": true,
+      "flowDirection": "bidirectional",
+      "transferClass": "high"
+    },
+    "conn-ls-pwr": {
+      "id": "conn-ls-pwr",
+      "source": "mod-life-support",
+      "target": "mod-power",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "medium"
+    },
+    "conn-pwr-prop": {
+      "id": "conn-pwr-prop",
+      "source": "mod-power",
+      "target": "mod-propulsion",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "medium"
+    },
+    "conn-hab-ls": {
+      "id": "conn-hab-ls",
+      "source": "mod-habitat",
+      "target": "mod-life-support",
+      "type": "imv",
+      "state": "open",
+      "ventilationOn": true,
+      "flowDirection": "bidirectional",
+      "transferClass": "medium"
+    }
+  },
+  "emergency": {
+    "type": "fire",
+    "affectedModuleId": "mod-storage",
+    "detected": true,
+    "sourceProfileId": null
+  }
+}

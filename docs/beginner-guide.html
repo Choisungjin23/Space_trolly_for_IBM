@@ -1,0 +1,740 @@
+<title>우주선 비상 AI 입문서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap">
+
+<style>
+  :root {
+    --paper:      #fbfcfd;
+    --surface:    #ffffff;
+    --sunk:       #f0f4f8;
+    --ink:        #16233a;
+    --ink-soft:   #4d5b70;
+    --ink-faint:  #8592a3;
+    --rule:       #dde4ec;
+    --rule-soft:  #eaeff4;
+    --accent:     #2f6fb0;
+    --signal:     #b5751a;
+    --good:       #2e8b7a;
+    --code-bg:    #eef2f7;
+
+    --measure: 40em;
+    --s1: .4rem; --s2: .8rem; --s3: 1.3rem;
+    --s4: 2.1rem; --s5: 3.2rem; --s6: 4.8rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0f151d;
+      --surface:   #17202b;
+      --sunk:      #131b24;
+      --ink:       #e6ecf3;
+      --ink-soft:  #a4b1c0;
+      --ink-faint: #7b8896;
+      --rule:      #26313e;
+      --rule-soft: #1d2631;
+      --accent:    #7ab5e8;
+      --signal:    #e0a850;
+      --good:      #55c3ac;
+      --code-bg:   #1c2632;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0f151d;
+    --surface:   #17202b;
+    --sunk:      #131b24;
+    --ink:       #e6ecf3;
+    --ink-soft:  #a4b1c0;
+    --ink-faint: #7b8896;
+    --rule:      #26313e;
+    --rule-soft: #1d2631;
+    --accent:    #7ab5e8;
+    --signal:    #e0a850;
+    --good:      #55c3ac;
+    --code-bg:   #1c2632;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.85;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 46em;
+    margin: 0 auto;
+    padding: var(--s5) var(--s3) var(--s6);
+    display: flex; flex-direction: column; gap: var(--s5);
+  }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+  .masthead {
+    display: flex; flex-direction: column; gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 2px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  h1 {
+    font-family: "Gothic A1", "Noto Sans KR", sans-serif;
+    font-weight: 800; font-size: clamp(1.9rem, 5.5vw, 2.9rem);
+    line-height: 1.25; margin: 0; letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 1.08rem; color: var(--ink-soft); margin: 0;
+    font-weight: 300; line-height: 1.8;
+  }
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem; color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: var(--s3);
+  }
+
+  /* ── Sections ─────────────────────────────────────────── */
+  section { display: flex; flex-direction: column; gap: var(--s3); }
+
+  h2 {
+    font-family: "Gothic A1", "Noto Sans KR", sans-serif;
+    font-weight: 800; font-size: 1.55rem; line-height: 1.35;
+    margin: 0; letter-spacing: -.02em; text-wrap: balance;
+    display: flex; align-items: baseline; gap: .6em;
+  }
+  h2 .step {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8rem; font-weight: 600; color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 3px;
+    padding: .1em .45em; flex-shrink: 0;
+  }
+
+  h3 {
+    font-family: "Gothic A1", "Noto Sans KR", sans-serif;
+    font-weight: 700; font-size: 1.1rem; margin: var(--s2) 0 0;
+    letter-spacing: -.01em; text-wrap: balance;
+  }
+
+  p { margin: 0; }
+  strong { font-weight: 700; }
+
+  a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .86em; background: var(--code-bg);
+    padding: .1em .38em; border-radius: 3px;
+  }
+
+  /* A term defined in the glossary */
+  .term {
+    border-bottom: 1px dotted var(--accent);
+    text-decoration: none; color: inherit; font-weight: 500;
+  }
+  .term:hover { color: var(--accent); }
+
+  /* ── Analogy box ──────────────────────────────────────── */
+  .analogy {
+    background: var(--sunk);
+    border-radius: 10px;
+    padding: var(--s3) var(--s3) var(--s3) calc(var(--s3) + .4rem);
+    border-left: 4px solid var(--signal);
+    display: flex; flex-direction: column; gap: var(--s1);
+  }
+  .analogy .label {
+    font-family: "Gothic A1", sans-serif; font-weight: 700;
+    font-size: .78rem; letter-spacing: .06em; color: var(--signal);
+  }
+  .analogy p { font-size: .97rem; line-height: 1.8; }
+
+  /* ── Key point ────────────────────────────────────────── */
+  .key {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: var(--s3);
+    display: flex; flex-direction: column; gap: var(--s1);
+  }
+  .key .label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+
+  /* ── Phase summary strip ──────────────────────────────── */
+  .strip { display: flex; flex-direction: column; gap: var(--s2); }
+  .strip-row {
+    display: grid; grid-template-columns: 3.2rem 1fr auto; gap: var(--s2);
+    align-items: center; padding: var(--s2) 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .strip-row:last-child { border-bottom: none; }
+  .strip-row .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem; font-weight: 600; color: var(--accent);
+  }
+  .strip-row .what { font-size: .95rem; }
+  .strip-row .what b { font-weight: 700; }
+  .strip-row .state {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem; color: var(--good); white-space: nowrap;
+  }
+
+  /* ── Lists ────────────────────────────────────────────── */
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s2); }
+  ul.plain > li { padding-left: 1.15rem; position: relative; }
+  ul.plain > li::before {
+    content: ""; position: absolute; left: 0; top: .72em;
+    width: .4rem; height: .4rem; border-radius: 50%; background: var(--accent);
+  }
+  ul.plain > li .note { display: block; color: var(--ink-soft); font-size: .92rem; margin-top: .15rem; }
+
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: var(--s3); }
+  ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: var(--s2); align-items: start; }
+  ol.steps > li::before {
+    content: counter(s);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 600; font-size: .82rem; color: var(--surface);
+    background: var(--accent); border-radius: 50%;
+    width: 1.6rem; height: 1.6rem; display: grid; place-items: center;
+    margin-top: .22rem;
+  }
+  ol.steps .title { font-weight: 700; font-family: "Gothic A1", sans-serif; }
+  ol.steps .why { color: var(--ink-soft); font-size: .93rem; }
+
+  /* ── Glossary ─────────────────────────────────────────── */
+  .glossary { display: flex; flex-direction: column; gap: 0; }
+  .entry {
+    padding: var(--s3) 0;
+    border-bottom: 1px solid var(--rule-soft);
+    display: flex; flex-direction: column; gap: .3rem;
+    scroll-margin-top: 1rem;
+  }
+  .entry:last-child { border-bottom: none; }
+  .entry dt {
+    font-family: "Gothic A1", sans-serif; font-weight: 700; font-size: 1.02rem;
+    display: flex; align-items: baseline; gap: .5em; flex-wrap: wrap;
+  }
+  .entry dt .en {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem; font-weight: 400; color: var(--ink-faint);
+  }
+  .entry dd { margin: 0; font-size: .96rem; color: var(--ink-soft); line-height: 1.8; }
+  .entry dd .like { color: var(--signal); font-weight: 500; }
+
+  hr.rule { border: none; border-top: 1px solid var(--rule); margin: 0; }
+  .footnote { color: var(--ink-faint); font-size: .88rem; line-height: 1.75; }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .wrap { padding: var(--s4) var(--s3) var(--s5); gap: var(--s4); }
+    .strip-row { grid-template-columns: 2.8rem 1fr; }
+    .strip-row .state { grid-column: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">IBM AI Builders Challenge</div>
+    <h1>우주선에 불이 났을 때,<br>무엇을 해야 할까</h1>
+    <p class="standfirst">
+      우리가 만든 시스템이 무슨 일을 하는지 코딩을 몰라도 이해할 수 있게 풀어 쓴
+      문서입니다. 전문 용어는 처음 나올 때 점선으로 표시했고, 맨 아래 사전에서
+      뜻을 볼 수 있습니다.
+    </p>
+    <div class="meta">
+      <span>2026-08-23</span>
+      <span>읽는 데 약 12분</span>
+      <span>사전 항목 18개</span>
+    </div>
+  </header>
+
+  <!-- ═════════ 무엇을 만들었나 ═════════ -->
+  <section>
+    <h2>한 문장으로</h2>
+    <p>
+      <strong>우주선에서 불이 났을 때, 어떤 조치를 취하면 어떤 결과가 벌어지는지
+      미리 계산해 보고, AI 전문가들이 그 결과를 해석해 사람에게 보고하는
+      시스템</strong>입니다. 최종 결정은 언제나 사람이 합니다.
+    </p>
+
+    <div class="analogy">
+      <div class="label">비유하자면</div>
+      <p>
+        조종사가 실제로 비행기를 추락시켜 보지 않고도 비행 시뮬레이터에서 위기 상황을
+        연습하는 것과 같습니다. 다만 우리 시스템은 한 걸음 더 나아가서, 시뮬레이션
+        결과를 놓고 <strong>화재 전문가·안전 담당·시스템 담당·임무 담당이 회의를 열어</strong>
+        각자의 관점에서 의견을 내고, 그 의견을 종합해 지휘관에게 보고서를 올립니다.
+      </p>
+    </div>
+
+    <h3>왜 필요한가</h3>
+    <p>
+      우주선에서 불이 나면 승무원은 몇 분 안에 결정을 내려야 합니다. 그런데 선택지마다
+      득과 실이 다릅니다. 불이 난 방을 완전히 밀봉하면 불은 잡히지만 그 방의 장비를
+      영영 못 씁니다. 환기를 끄면 연기 확산은 막지만 희석도 함께 잃습니다. 문 하나만
+      닫으면 연기가 다른 길로 돌아갑니다.
+    </p>
+    <p>
+      <strong>사람이 몇 분 안에 이 모든 경우의 수를 머릿속으로 계산할 수는 없습니다.</strong>
+      그래서 컴퓨터가 계산하고, AI가 해석하고, 사람이 결정하도록 역할을 나눴습니다.
+    </p>
+  </section>
+
+  <!-- ═════════ 전체 그림 ═════════ -->
+  <section>
+    <h2>세 조각이 어떻게 이어지나</h2>
+    <p>
+      시스템은 세 부분으로 나뉘어 있고, 각각을 <b>Phase A · B · C</b>라고 부릅니다.
+      순서대로 쌓아 올린 구조라서 A가 없으면 B가, B가 없으면 C가 의미가 없습니다.
+    </p>
+
+    <div class="strip">
+      <div class="strip-row">
+        <span class="tag">A</span>
+        <span class="what"><b>계산기</b> — 불이 어떻게 번지고 누가 위험해지는지 계산</span>
+        <span class="state">완료</span>
+      </div>
+      <div class="strip-row">
+        <span class="tag">B</span>
+        <span class="what"><b>화면</b> — 사람이 우주선을 그리고 버튼을 누르는 곳</span>
+        <span class="state">완료</span>
+      </div>
+      <div class="strip-row">
+        <span class="tag">C</span>
+        <span class="what"><b>전문가 회의</b> — AI들이 결과를 해석하고 권고안을 작성</span>
+        <span class="state">완료 · 검증 대기</span>
+      </div>
+    </div>
+
+    <div class="key">
+      <div class="label">이 시스템의 핵심 원칙</div>
+      <p>
+        <strong>숫자는 계산기가 만들고, AI는 절대 숫자를 지어내지 않습니다.</strong>
+        AI가 "연기가 4개 방에 도달했다"고 말하면, 그 4라는 숫자는 반드시 계산 결과
+        안에 실제로 있어야 합니다. 없으면 시스템이 자동으로 잡아내서 사람에게
+        "이 AI가 근거 없는 말을 했다"고 표시합니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═════════ PHASE A ═════════ -->
+  <section>
+    <h2><span class="step">A</span>계산기</h2>
+    <p>
+      우주선을 <strong>방과 통로로 이루어진 지도</strong>로 표현하고, 불이 났을 때
+      연기가 어느 통로로 얼마나 흘러가는지를 30초 단위로 1시간 동안 계산합니다.
+      이걸 <a class="term" href="#g-sim">시뮬레이션</a>이라고 부릅니다.
+    </p>
+
+    <h3>어제 한 일</h3>
+    <ul class="plain">
+      <li><strong>계산 방식을 완전히 바꿨습니다.</strong>
+        <span class="note">원래는 "35% 확률로 옆방에 불이 붙는다" 같은 방식이었는데,
+        그 35%라는 숫자에 아무런 근거가 없었습니다. 그래서 실제 공기 흐름을 계산하는
+        방식으로 바꿨습니다. "환기 팬이 초당 0.07세제곱미터를 밀어내고, 방 크기가
+        105세제곱미터니까 농도가 이만큼 오른다" 같은 식입니다.</span></li>
+
+      <li><strong>NASA 실제 문서에서 숫자를 가져왔습니다.</strong>
+        <span class="note">원문 PDF를 직접 열어 표를 읽었습니다. 예를 들어 일산화탄소의
+        1시간 노출 허용 농도는 425ppm입니다. 검색 요약본은 이 값을 15ppm이라고
+        잘못 알려줬는데, 그건 30일 이상 장기 기준이었습니다. 원문을 확인하지 않았다면
+        28배 틀린 값을 쓸 뻔했습니다.</span></li>
+
+      <li><strong>어디까지가 근거이고 어디부터가 가정인지 표시했습니다.</strong>
+        <span class="note">NASA 문서에서 나온 값 8개는 이름 앞에 <code>VERIFIED_</code>,
+        우리가 임의로 정한 값 29개는 <code>ASSUMED_</code>를 붙였습니다. 나중에 누가
+        표시 없는 값을 몰래 끼워 넣으면 자동 점검이 실패합니다.</span></li>
+
+      <li><strong>사람과 장비를 연결했습니다.</strong>
+        <span class="note">기계만 멀쩡하면 되는 게 아니라, 그걸 다룰 사람이 있어야
+        시스템이 돌아갑니다. 엔지니어가 갇히면 생명유지장치가 멀쩡해도 못 씁니다.</span></li>
+    </ul>
+
+    <div class="analogy">
+      <div class="label">여기서 중요한 이야기</div>
+      <p>
+        실제 단위로 계산하고 나니 <strong>이전 모델이 현실보다 훨씬 과격했다는 게
+        드러났습니다.</strong> 환기가 돌아가는 상태라면 이 정도 규모의 불로는
+        일산화탄소가 위험 수준에 도달하지 않습니다. 진짜 위협은 독가스가 아니라
+        <strong>연기 때문에 앞이 안 보여 탈출이 늦어지는 것</strong>이었습니다.
+        계산을 제대로 하지 않았다면 엉뚱한 걸 걱정할 뻔했습니다.
+      </p>
+    </div>
+
+    <h3>앞으로 해야 할 일</h3>
+    <ul class="plain">
+      <li><strong>연기 성분 데이터 확보</strong> — 가장 큰 빈칸
+        <span class="note">"천 1그램이 탈 때 일산화탄소가 몇 밀리그램 나오는가"를
+        아직 모릅니다. 지금은 추정값입니다. 지상 실험 데이터를 그대로 쓸 수도 없는데,
+        무중력에서는 불이 타는 방식이 달라지기 때문입니다.</span></li>
+      <li><strong>계산기의 작은 결함 수정</strong>
+        <span class="note">특정 조건에서 "귀환 가능" 같은 항목이 실제로는 확인하지
+        않았는데도 안전하다고 표시될 수 있습니다. 지금은 Phase C가 이 문제를 우회하고
+        있어 겉으로 드러나지 않지만, 팀원이 새 시나리오를 만들면 바로 문제가 됩니다.</span></li>
+      <li><strong>화재 외 사고 유형</strong>
+        <span class="note">감압이나 정전 같은 다른 비상 상황은 아직 없습니다.</span></li>
+    </ul>
+  </section>
+
+  <!-- ═════════ PHASE B ═════════ -->
+  <section>
+    <h2><span class="step">B</span>화면</h2>
+    <p>
+      사람이 실제로 손대는 부분입니다. 마우스로 방을 그리고 통로로 잇고, 승무원과
+      장비를 배치한 뒤, 원하는 방에 불을 지르고 버튼을 누릅니다.
+    </p>
+
+    <h3>어제 한 일</h3>
+    <ul class="plain">
+      <li><strong>가짜 계산기를 진짜로 바꿨습니다.</strong>
+        <span class="note">Phase B는 원래 그럴듯한 숫자를 지어내는 임시 계산기를
+        쓰고 있었습니다. 이걸 Phase A 진짜 계산기로 교체했습니다. 화면 코드는 거의
+        건드리지 않고 <a class="term" href="#g-adapter">어댑터</a>라는 번역기를
+        하나 끼워 넣는 방식으로요.</span></li>
+      <li><strong>고장 난 개발 환경을 고쳤습니다.</strong>
+        <span class="note">받은 파일 안의 <a class="term" href="#g-venv">가상환경</a>이
+        다른 사람 컴퓨터 경로를 가리키고 있어서 아무것도 실행되지 않았습니다.</span></li>
+      <li><strong>AI 분석 탭을 추가했습니다.</strong>
+        <span class="note">결과 화면에 Advisor 탭이 생겼습니다. Phase C의 분석이
+        여기 표시됩니다.</span></li>
+      <li><strong>전달용 압축본을 만들었습니다.</strong>
+        <span class="note">298MB에서 0.3MB로 줄였습니다. 나머지는 받는 사람 컴퓨터에서
+        자동으로 다시 만들어지는 것들이라 넣을 필요가 없습니다.</span></li>
+    </ul>
+
+    <h3>앞으로 해야 할 일</h3>
+    <ul class="plain">
+      <li><strong>오래 걸리는 작업 처리 방식 개선</strong>
+        <span class="note">AI 분석은 30초에서 1분쯤 걸립니다. 지금은 그동안 화면이
+        기다리기만 하는데, 시간이 더 길어지면 연결이 끊길 수 있습니다. "접수했으니
+        나중에 확인하세요" 방식으로 바꾸는 게 좋습니다.</span></li>
+    </ul>
+  </section>
+
+  <!-- ═════════ PHASE C ═════════ -->
+  <section>
+    <h2><span class="step">C</span>전문가 회의</h2>
+    <p>
+      계산 결과를 놓고 <a class="term" href="#g-agent">AI 에이전트</a> 7명이
+      각자 역할을 맡아 회의를 합니다. 사람 조직과 비슷하게 나눠져 있습니다.
+    </p>
+
+    <ul class="plain">
+      <li><strong>화재 담당</strong> — 연기가 어디까지 갔고 어느 통로가 문제였나</li>
+      <li><strong>승무원 안전 담당</strong> — 누가 얼마나 노출됐고 탈출은 가능했나</li>
+      <li><strong>시스템 담당</strong> — 어떤 장비가 망가졌고, 고칠 수 있는 고장인가</li>
+      <li><strong>임무 담당</strong> — 지구로 돌아갈 수 있나, 계속 살 수 있나</li>
+      <li><strong>근거 담당</strong> — NASA 문서에는 뭐라고 쓰여 있나 <span class="note">결정은 하지 않고 출처만 제시합니다.</span></li>
+      <li><strong>반론 담당</strong> — 위 사람들이 뭘 놓쳤나, 누가 과장했나</li>
+      <li><strong>조율 담당</strong> — 종합해서 권고안 작성 <span class="note">유일하게 "이렇게 하시죠"라고 말할 수 있는 역할입니다.</span></li>
+    </ul>
+
+    <div class="key">
+      <div class="label">AI가 거짓말하지 못하게 만든 장치</div>
+      <p>
+        AI에게 "숫자를 지어내지 마"라고 말로 부탁하는 것만으로는 막히지 않습니다.
+        그래서 <strong>기계적으로 검사하는 장치</strong>를 따로 만들었습니다.
+        AI가 답을 내놓으면, 그 문장에 들어 있는 모든 숫자를 계산 결과와 하나씩
+        대조합니다. 없는 숫자를 말하면 걸러냅니다.
+      </p>
+      <p>
+        중요한 건 <strong>걸러낸 걸 조용히 지우지 않는다</strong>는 점입니다.
+        "이 AI가 근거 없는 주장을 하려고 했다"는 사실 자체를 사람에게 보여줍니다.
+        그게 AI를 얼마나 믿어야 할지 판단하는 재료가 되니까요.
+      </p>
+    </div>
+
+    <h3>확률처럼 말하지 않는 이유</h3>
+    <p>
+      우리는 여러 가정을 바꿔가며 1000번 계산해 봅니다. 그중 820번에서 승무원이
+      무사했다면, 우리는 <strong>"1000번 중 820번"</strong>이라고 씁니다.
+      <strong>"82% 확률로 안전"이라고 쓰지 않습니다.</strong>
+    </p>
+    <p>
+      계산을 1000번 반복했다는 사실이 현실 세계의 확률을 증명해 주지는 않기
+      때문입니다. 우리가 넣은 가정이 틀렸다면 1000번 다 틀린 것이고, 그래도
+      숫자는 똑같이 820이 나옵니다. "82%"라고 쓰는 순간 없는 근거를 지어내는 셈입니다.
+    </p>
+
+    <h3>사망 확률을 계산하지 않는 이유</h3>
+    <p>
+      이 시스템에는 사람이 죽을 확률을 계산하는 기능이 <strong>의도적으로
+      없습니다.</strong> 승무원은 "안전 / 노출됨 / 대피 중 / 대피 완료 / 갇힘"이라는
+      상태와 <strong>얼마나 오래 유해 환경에 있었는지</strong>만 추적합니다.
+      근거 없이 목숨값을 계산하느니 아예 하지 않는 편이 정직하다고 판단했습니다.
+    </p>
+
+    <h3>앞으로 해야 할 일</h3>
+    <ul class="plain">
+      <li><strong>실제 AI로 한 번도 돌려보지 않았습니다</strong> — 가장 큰 미지수
+        <span class="note">지금까지의 모든 시험은 "정해진 답을 돌려주는 가짜 AI"로
+        했습니다. 진짜 <a class="term" href="#g-granite">Granite</a>에 연결하려면
+        <a class="term" href="#g-apikey">API 키</a>가 필요합니다. 실제 AI가 우리가
+        정한 형식을 얼마나 잘 지킬지는 돌려봐야 알 수 있고, 대개 몇 번 다듬어야
+        합니다.</span></li>
+      <li><strong>AI 5명의 역할 정의서가 아직 초안입니다</strong>
+        <span class="note">원래 받은 요구사항 문서가 중간에 잘려 있어서, 7명 중 5명의
+        역할은 제가 추정해서 작성했습니다. 코드에 "초안"이라고 표시해 뒀고, 원본이
+        나오면 그 부분만 바꾸면 됩니다.</span></li>
+    </ul>
+  </section>
+
+  <!-- ═════════ 다음 단계 ═════════ -->
+  <section>
+    <h2>이제 무엇을 하면 되나</h2>
+    <p>
+      순서가 중요합니다. 1번이 나머지 여러 결정의 판단 근거가 되기 때문입니다.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <div>
+          <div class="title">IBM에서 AI 사용 권한 받기</div>
+          <div class="why">
+            <a class="term" href="#g-watsonx">watsonx</a> 사이트에서 값 세 개를
+            받습니다 — <a class="term" href="#g-apikey">API 키</a>, 프로젝트 번호,
+            지역 주소. 그리고 컴퓨터에 그 값을 등록합니다. 등록이 잘 됐는지
+            확인하는 명령어를 만들어 뒀습니다.
+            <br><br>
+            <strong>주의:</strong> API 키는 비밀번호와 같습니다. 채팅창이나 메신저에
+            붙여넣지 마세요.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="title">AI를 한 번 실제로 돌려보기</div>
+          <div class="why">
+            화면보다 <a class="term" href="#g-cli">명령줄</a>에서 먼저 돌려보는 게
+            좋습니다. 출력이 다 보여서 뭐가 잘못됐는지 찾기 쉽기 때문입니다.
+            여기서 "AI가 근거 없는 말을 했다"는 표시가 얼마나 나오는지 보고
+            지시문을 다듬습니다.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="title">AI 5명의 역할 정의서 확정</div>
+          <div class="why">
+            원본 요구사항이 있으면 지금 반영하는 게 나중보다 훨씬 쌉니다.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="title">계산기의 작은 결함 수정</div>
+          <div class="why">
+            지금 데모에서는 안 드러나지만, 팀원이 새 우주선을 만들면 바로 나타납니다.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="title">오래 걸리는 작업 처리 개선</div>
+          <div class="why">
+            2번에서 실제로 얼마나 걸리는지 재본 뒤에 결정하는 게 합리적입니다.
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <div class="key">
+      <div class="label">시연 관점에서</div>
+      <p>
+        <strong>1번과 2번만 끝내면 처음부터 끝까지 시연이 가능합니다.</strong>
+        우주선 만들기 → 불 지르기 → 계산 → 조치 비교 → AI 분석 → 권고안까지
+        전부 이어집니다. 나머지는 기능이 없는 게 아니라 더 튼튼하게 만드는
+        작업입니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═════════ 용어 사전 ═════════ -->
+  <section>
+    <h2>용어 사전</h2>
+    <p>
+      본문에 점선으로 표시된 단어들입니다. 개발자들이 자주 쓰지만 처음 들으면
+      막막한 것들만 골랐습니다.
+    </p>
+
+    <dl class="glossary">
+      <div class="entry" id="g-sim">
+        <dt>시뮬레이션 <span class="en">simulation</span></dt>
+        <dd>실제로 해보지 않고 컴퓨터로 결과를 미리 계산해 보는 것.
+          <span class="like">일기예보와 같은 원리입니다</span> — 내일을 살아보지 않고
+          계산으로 예측하죠. 계산에 쓰는 프로그램을 <b>시뮬레이터</b>,
+          그 핵심 계산 부분을 <b>엔진</b>이라고 부릅니다.</dd>
+      </div>
+
+      <div class="entry" id="g-cli">
+        <dt>명령줄 <span class="en">CLI, Command Line Interface</span></dt>
+        <dd>마우스로 클릭하는 대신 <b>글자로 명령을 입력해</b> 프로그램을 다루는 방식.
+          검은 창에 명령어를 치는 그것입니다. 반대말은 GUI(버튼과 창이 있는 화면).
+          <span class="like">문자로 주문하기 vs 메뉴판에서 손가락으로 가리키기</span>의
+          차이라고 보면 됩니다. 개발자가 명령줄을 쓰는 이유는 빠르고, 무엇이 왜
+          실패했는지 다 보이기 때문입니다.</dd>
+      </div>
+
+      <div class="entry" id="g-terminal">
+        <dt>터미널 <span class="en">terminal</span></dt>
+        <dd>명령줄을 입력하는 그 검은 창 자체. Windows에서는 PowerShell이나
+          명령 프롬프트가 여기 해당합니다.</dd>
+      </div>
+
+      <div class="entry" id="g-front-back">
+        <dt>프런트엔드 · 백엔드 <span class="en">frontend · backend</span></dt>
+        <dd><b>프런트엔드</b>는 사람 눈에 보이는 화면, <b>백엔드</b>는 뒤에서 계산하고
+          데이터를 다루는 부분입니다.
+          <span class="like">식당으로 치면 홀과 주방</span>입니다. 손님은 홀만 보지만
+          음식은 주방에서 만들어지죠. 우리 시스템에서 Phase B의 화면이 프런트엔드,
+          Phase A 계산기를 돌리는 부분이 백엔드입니다.</dd>
+      </div>
+
+      <div class="entry" id="g-api">
+        <dt>API <span class="en">Application Programming Interface</span></dt>
+        <dd>프로그램끼리 대화하는 <b>정해진 창구</b>. 화면이 계산기에게 "이 우주선으로
+          계산해 줘"라고 요청하는 통로입니다.
+          <span class="like">식당의 주문서 양식</span>과 비슷합니다 — 양식만 맞춰
+          적어 내면 주방이 알아서 만들어 주고, 손님이 주방에 직접 들어갈 필요가 없죠.</dd>
+      </div>
+
+      <div class="entry" id="g-adapter">
+        <dt>어댑터 <span class="en">adapter</span></dt>
+        <dd>서로 안 맞는 두 부분 사이에 끼워 넣는 <b>번역기</b>.
+          <span class="like">해외여행용 콘센트 어댑터</span>와 정확히 같은 개념입니다.
+          우리 경우 Phase B 화면과 Phase A 계산기가 데이터를 표현하는 방식이 달라서,
+          그 사이를 번역하는 어댑터를 만들었습니다. 덕분에 화면 코드를 거의 고치지
+          않고 계산기를 교체할 수 있었습니다.</dd>
+      </div>
+
+      <div class="entry" id="g-package">
+        <dt>패키지 · 설치 <span class="en">package · install</span></dt>
+        <dd>남이 만들어 둔 코드 묶음을 <b>가져다 쓰는 것</b>. 매번 처음부터 만들지 않고
+          이미 검증된 걸 쓰는 게 표준입니다. Python에서는 <code>pip install</code>,
+          웹 화면 쪽에서는 <code>npm install</code> 명령으로 설치합니다.
+          <span class="like">요리할 때 밀가루를 직접 빻지 않고 사 오는 것</span>과 같습니다.</dd>
+      </div>
+
+      <div class="entry" id="g-venv">
+        <dt>가상환경 <span class="en">virtual environment, venv</span></dt>
+        <dd>프로젝트마다 <b>필요한 부품을 따로 담아 두는 상자</b>. A 프로젝트는 옛 버전이,
+          B 프로젝트는 새 버전이 필요할 때 서로 충돌하지 않게 분리합니다.
+          <span class="like">공구를 프로젝트별 상자에 나눠 담는 것</span>이죠.
+          <b>주의:</b> 이 상자는 만든 사람 컴퓨터의 경로를 기억하고 있어서,
+          다른 사람에게 그대로 보내면 작동하지 않습니다. 그래서 압축본에서 뺐습니다.</dd>
+      </div>
+
+      <div class="entry" id="g-test">
+        <dt>테스트 <span class="en">test</span></dt>
+        <dd>코드가 제대로 도는지 <b>자동으로 점검하는 프로그램</b>. 사람이 매번 손으로
+          확인하는 대신, 점검 항목을 코드로 적어 두고 한 번에 돌립니다.
+          우리 프로젝트에는 225개가 있고, 뭔가를 고쳤을 때 다른 게 망가졌는지
+          몇 초 만에 알 수 있습니다.
+          <span class="like">자동차 출고 전 검사 항목표</span>와 비슷합니다.</dd>
+      </div>
+
+      <div class="entry" id="g-llm">
+        <dt>LLM · 거대 언어 모델 <span class="en">Large Language Model</span></dt>
+        <dd>ChatGPT 같은 <b>글을 이해하고 쓰는 AI</b>. 우리는 이걸 계산에는 쓰지 않고,
+          <b>계산 결과를 사람 말로 해석하는 데만</b> 씁니다. LLM은 그럴듯한 거짓말을
+          잘하기 때문에, 숫자 계산을 맡기면 위험합니다.</dd>
+      </div>
+
+      <div class="entry" id="g-agent">
+        <dt>에이전트 <span class="en">agent</span></dt>
+        <dd>특정 <b>역할과 권한을 부여받은 AI</b>. 같은 LLM이라도 "너는 화재만 본다",
+          "너는 반박만 한다"처럼 역할을 나눠 주면 각자 다르게 행동합니다.
+          <span class="like">같은 사람이라도 회의에서 맡은 역할에 따라 다른 말을 하는 것</span>과
+          비슷합니다. 우리는 7개 역할로 나눴습니다.</dd>
+      </div>
+
+      <div class="entry" id="g-prompt">
+        <dt>프롬프트 <span class="en">prompt</span></dt>
+        <dd>AI에게 주는 <b>지시문</b>. "너는 화재 담당이다, 이 규칙을 지켜라, 이 데이터를
+          보고 답하라" 같은 글입니다. AI의 성능은 프롬프트를 어떻게 쓰느냐에 크게
+          좌우되고, 대개 실제로 돌려보며 여러 번 다듬어야 합니다.</dd>
+      </div>
+
+      <div class="entry" id="g-watsonx">
+        <dt>watsonx <span class="en">IBM watsonx</span></dt>
+        <dd>IBM이 만든 <b>AI 서비스 플랫폼</b>. IBM의 AI 모델을 인터넷으로 불러다 쓸 수
+          있게 해 주는 곳입니다.
+          <span class="like">전기를 직접 발전하지 않고 한전에서 끌어다 쓰는 것</span>과
+          비슷합니다 — 우리가 AI를 직접 만들지 않고 IBM 것을 빌려 씁니다.
+          이번 공모전이 IBM 주최라서 이걸 씁니다.</dd>
+      </div>
+
+      <div class="entry" id="g-granite">
+        <dt>Granite <span class="en">IBM Granite</span></dt>
+        <dd>IBM이 만든 <b>LLM의 이름</b>. ChatGPT, Claude 같은 것들과 같은 종류입니다.
+          watsonx가 서비스 플랫폼이라면 Granite는 그 안에서 돌아가는 AI 모델
+          자체입니다.</dd>
+      </div>
+
+      <div class="entry" id="g-apikey">
+        <dt>API 키 <span class="en">API key</span></dt>
+        <dd>서비스를 쓸 자격이 있음을 증명하는 <b>긴 비밀번호</b>. 이걸 프로그램에
+          넣어 두면 우리 프로그램이 IBM 서버에 "나 사용 권한 있어"라고 알립니다.
+          <span class="like">출입 카드</span>와 같아서, 남에게 주면 그 사람이 내 이름으로
+          쓰고 요금도 나에게 청구됩니다. <b>채팅창·메신저·문서에 붙여넣지 마세요.</b></dd>
+      </div>
+
+      <div class="entry" id="g-rag">
+        <dt>RAG <span class="en">Retrieval-Augmented Generation</span></dt>
+        <dd>AI가 기억에 의존해 답하는 대신, <b>먼저 실제 문서를 찾아보고 그걸 근거로
+          답하게 하는 방식</b>. 우리는 NASA 문서 조각들을 저장해 두고, AI가 답할 때
+          반드시 출처를 함께 대도록 했습니다.
+          <span class="like">시험을 오픈북으로 치르게 하는 것</span>이죠 — 외운 걸
+          말하다 틀리는 것보다 책을 펴서 확인하는 편이 정확하니까요.</dd>
+      </div>
+
+      <div class="entry" id="g-json">
+        <dt>JSON <span class="en">JavaScript Object Notation</span></dt>
+        <dd>프로그램끼리 데이터를 주고받을 때 쓰는 <b>글로 된 표 형식</b>.
+          사람도 읽을 수 있게 생겼습니다. 우리 우주선 설계도, 계산 결과, AI의 답변이
+          전부 이 형식으로 오갑니다.</dd>
+      </div>
+
+      <div class="entry" id="g-montecarlo">
+        <dt>몬테카를로 <span class="en">Monte Carlo</span></dt>
+        <dd>확실하지 않은 조건들을 <b>조금씩 바꿔가며 여러 번 계산해 보는 방법</b>.
+          예를 들어 "화재를 30초 만에 발견할 수도, 2분 만에 발견할 수도 있다"면
+          그 범위에서 무작위로 골라 1000번 계산합니다.
+          <span class="like">주사위를 여러 번 굴려 보는 것</span>과 비슷해서 도박 도시
+          이름이 붙었습니다. 결과는 "1000번 중 820번"처럼 <b>횟수</b>로 말하지
+          확률로 말하지 않습니다.</dd>
+      </div>
+
+      <div class="entry" id="g-hardcode">
+        <dt>하드코딩 <span class="en">hardcoding</span></dt>
+        <dd>바뀔 수 있는 값을 코드 안에 <b>못 박아 넣는 것</b>. 보통 나쁜 습관으로
+          봅니다. 예를 들어 "2번 방을 봉쇄하라"를 코드에 직접 적어 두면 3번 방에
+          불이 났을 때 못 씁니다. 우리 계산기는 방 번호를 못 박지 않아서 방이
+          3개든 15개든 돌아갑니다.</dd>
+      </div>
+    </dl>
+
+    <hr class="rule">
+    <p class="footnote">
+      더 자세한 기술 내용은 같은 폴더의 <code>phase-status-report.html</code>(개발자용
+      진행 보고서), <code>phase-a-contract.md</code>(부품 간 연결 규격),
+      <code>nasa-calibration-report.html</code>(NASA 자료 조사)에 있습니다.
+      이 문서는 그 세 개를 코딩을 모르는 독자용으로 풀어 쓴 것입니다.
+    </p>
+  </section>
+
+</div>

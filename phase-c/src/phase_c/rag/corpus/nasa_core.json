@@ -1,0 +1,110 @@
+[
+  {
+    "id": "smac-co-1h",
+    "text": "Spacecraft Maximum Allowable Concentrations for carbon monoxide: 1-hour limit 425 ppm (485 mg/m3); 24-hour 100 ppm (114 mg/m3); 7-day 55 ppm (63 mg/m3); 30-day and longer 15 ppm (17 mg/m3). The 1-hour and 24-hour values are contingency limits, set for off-nominal situations rather than routine operations.",
+    "keywords": ["co", "carbon monoxide", "smac", "exposure", "toxicity", "ppm", "limit"],
+    "citation": {
+      "source_id": "JSC-20584-RevC",
+      "title": "Spacecraft Maximum Allowable Concentrations for Airborne Contaminants",
+      "locator": "SMAC table, carbon monoxide row (CAS 630-08-0)",
+      "retrieved_on": "2026-08-22",
+      "url": "https://www.nasa.gov/wp-content/uploads/2024/06/jsc-20584-smacs-rev-c-final.pdf"
+    }
+  },
+  {
+    "id": "smac-hcn-1h",
+    "text": "Spacecraft Maximum Allowable Concentrations for hydrogen cyanide: 1-hour limit 8 ppm (9 mg/m3); 24-hour 4 ppm (4.5 mg/m3); 7-day through 180-day 1 ppm (1.1 mg/m3). Hydrogen cyanide's 1-hour limit is roughly 53 times more restrictive than carbon monoxide's, so in a fire it is frequently the binding constraint rather than CO.",
+    "keywords": ["hcn", "hydrogen cyanide", "smac", "exposure", "toxicity", "binding"],
+    "citation": {
+      "source_id": "JSC-20584-RevC",
+      "title": "Spacecraft Maximum Allowable Concentrations for Airborne Contaminants",
+      "locator": "SMAC table, hydrogen cyanide row (CAS 74-90-8)",
+      "retrieved_on": "2026-08-22",
+      "url": "https://www.nasa.gov/wp-content/uploads/2024/06/jsc-20584-smacs-rev-c-final.pdf"
+    }
+  },
+  {
+    "id": "smac-hcl-1h",
+    "text": "Spacecraft Maximum Allowable Concentrations for hydrogen chloride: 1-hour limit 5 ppm (8 mg/m3); 24-hour 2 ppm (3 mg/m3); 7-day through 180-day 1 ppm (1.5 mg/m3). Principal effects are eye and mucosal irritation.",
+    "keywords": ["hcl", "hydrogen chloride", "smac", "irritation", "exposure"],
+    "citation": {
+      "source_id": "JSC-20584-RevC",
+      "title": "Spacecraft Maximum Allowable Concentrations for Airborne Contaminants",
+      "locator": "SMAC table, hydrogen chloride row (CAS 7647-01-0)",
+      "retrieved_on": "2026-08-22",
+      "url": "https://www.nasa.gov/wp-content/uploads/2024/06/jsc-20584-smacs-rev-c-final.pdf"
+    }
+  },
+  {
+    "id": "saffire-microgravity-spread",
+    "text": "In the Saffire II microgravity experiments on thermally thick PMMA, the pyrolysis front spread at roughly 0.05 to 0.06 mm/s and fuel burnout at roughly 0.014 to 0.05 mm/s, under a forced flow of 200 mm/s typical of ISS ventilation. Compared with normal gravity, microgravity pyrolysis spread rates were 18 to 24 times slower while fuel burnout rates were only 1.6 to 3 times slower. Ground-test flame spread data therefore does not transfer directly to microgravity.",
+    "keywords": ["saffire", "microgravity", "flame spread", "pmma", "burnout", "ground test", "transfer"],
+    "citation": {
+      "source_id": "Saffire-II-analysis",
+      "title": "Analysis of Saffire II two-sided concurrent flame spread",
+      "locator": "Results, spread and burnout rate comparison table",
+      "retrieved_on": "2026-08-22",
+      "url": "https://ttu-ir.tdl.org/server/api/core/bitstreams/90cdab5b-b19a-4ce7-a1a2-4d3bd252caa8/content"
+    }
+  },
+  {
+    "id": "saffire-sibal-fabric",
+    "text": "Saffire-I burned a SIBAL fabric sample, a blend of 75 percent cotton and 25 percent fiberglass by mass with an area density of 18.0 mg/cm2, in 21.7 percent oxygen at a tunnel entrance flow speed of 20 cm/s. Fire behaviour in microgravity depends strongly on material, geometry, oxygen concentration, pressure and airflow, so a single global growth rate is not defensible.",
+    "keywords": ["saffire", "sibal", "fabric", "cotton", "area density", "material", "growth rate"],
+    "citation": {
+      "source_id": "NTRS-20170002628",
+      "title": "Operation and Development Status of the Spacecraft Fire Experiment (Saffire)",
+      "locator": "Experiment configuration, Saffire-I sample description",
+      "retrieved_on": "2026-08-22",
+      "url": "https://ntrs.nasa.gov/api/citations/20170002628/downloads/20170002628.pdf"
+    }
+  },
+  {
+    "id": "iss-imv-flow",
+    "text": "ISS intermodule ventilation fans are rated near 140 to 150 cfm; 150 cfm corresponds to 4.25 m3/min, about 0.0708 m3/s. Against a Destiny-class module of roughly 105 m3 this gives an air exchange time near 25 minutes, and against a Node-class module of roughly 70 m3 near 16 minutes.",
+    "keywords": ["imv", "ventilation", "flow", "cfm", "air exchange", "dilution", "module volume"],
+    "citation": {
+      "source_id": "NTRS-20150009509",
+      "title": "Inter-Module Ventilation Changes to the International Space Station Vehicle",
+      "locator": "IMV fan performance discussion",
+      "retrieved_on": "2026-08-22",
+      "url": "https://ntrs.nasa.gov/api/citations/20150009509/downloads/20150009509.pdf"
+    }
+  },
+  {
+    "id": "iss-fire-detection",
+    "text": "ISS US segment smoke detectors are photoelectric units using a laser source with scatter and obscuration photodiodes, mounted on ventilation filter intake ducts. An alarm requires the scatter threshold to be exceeded on two consecutive readings. Because the detectors sit in the ventilation path, detection depends on airflow carrying smoke to them; with ventilation off, detection is delayed.",
+    "keywords": ["detector", "smoke detection", "alarm", "obscuration", "ventilation", "iss", "delay"],
+    "citation": {
+      "source_id": "NTRS-20030053429",
+      "title": "Overview of ISS US Fire Detection",
+      "locator": "Smoke detector principle and placement slides",
+      "retrieved_on": "2026-08-22",
+      "url": "https://ntrs.nasa.gov/api/citations/20030053429/downloads/20030053429.pdf"
+    }
+  },
+  {
+    "id": "nasa-std-6001-test1",
+    "text": "NASA-STD-6001B Test 1, upward flame propagation, evaluates a material against two failure criteria: self-extinguishment within 15 cm (about 15.2 cm burn length) and no transfer of burning debris. Five replicates must pass both for unrestricted flight usage in habitable environments.",
+    "keywords": ["flammability", "material", "test 1", "burn length", "screening", "standard"],
+    "citation": {
+      "source_id": "NASA-STD-6001B",
+      "title": "NASA-STD-6001B Test 1 Upward Flame Propagation",
+      "locator": "Test 1 pass/fail criteria",
+      "retrieved_on": "2026-08-22",
+      "url": "https://ntrs.nasa.gov/api/citations/20170004702/downloads/20170004702.pdf"
+    }
+  },
+  {
+    "id": "fmeca-methodology",
+    "text": "MIL-STD-1629A defines the procedure for Failure Mode, Effects and Criticality Analysis: identify failure modes, assess their effect on the system and the mission, and rank by criticality to find single-point failures and drive redundancy decisions. It ranks functions and failure modes, not people. Note that NASA-STD-8719.13 is the Software Safety Standard and was cancelled in June 2020; it is not a FMECA reference.",
+    "keywords": ["fmeca", "criticality", "single point failure", "redundancy", "methodology", "standard"],
+    "citation": {
+      "source_id": "MIL-STD-1629A",
+      "title": "Procedures for Performing a Failure Mode, Effects and Criticality Analysis",
+      "locator": "Scope and criticality analysis procedure",
+      "retrieved_on": "2026-08-22",
+      "url": "https://extapps.ksc.nasa.gov/Reliability/Documents/milstd1629_FMEA.pdf"
+    }
+  }
+]

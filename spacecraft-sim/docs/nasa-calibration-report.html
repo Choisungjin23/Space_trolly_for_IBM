@@ -1,0 +1,901 @@
+<title>NASA 파라미터 교정 리포트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+  :root {
+    --paper:      #f4f6f8;
+    --surface:    #ffffff;
+    --ink:        #141c27;
+    --ink-soft:   #56636f;
+    --ink-faint:  #7d8996;
+    --rule:       #dbe1e8;
+    --rule-soft:  #e8ecf1;
+    --accent:     #1d4e6f;
+    --verified:   #0e7c66;
+    --derived:    #9a6510;
+    --gap:        #a33a3a;
+    --code-bg:    #eef1f5;
+
+    --measure: 68ch;
+    --s1: 0.35rem; --s2: 0.7rem; --s3: 1.1rem;
+    --s4: 1.8rem;  --s5: 2.8rem; --s6: 4.2rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0e141b;
+      --surface:   #151e28;
+      --ink:       #e2e8ef;
+      --ink-soft:  #9aa7b4;
+      --ink-faint: #74828f;
+      --rule:      #26323f;
+      --rule-soft: #1d2733;
+      --accent:    #74b4d6;
+      --verified:  #4cbfa2;
+      --derived:   #d5a343;
+      --gap:       #e08585;
+      --code-bg:   #1b2530;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0e141b;
+    --surface:   #151e28;
+    --ink:       #e2e8ef;
+    --ink-soft:  #9aa7b4;
+    --ink-faint: #74828f;
+    --rule:      #26323f;
+    --rule-soft: #1d2733;
+    --accent:    #74b4d6;
+    --verified:  #4cbfa2;
+    --derived:   #d5a343;
+    --gap:       #e08585;
+    --code-bg:   #1b2530;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--s5) var(--s3) var(--s6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s5);
+  }
+
+  .col { max-width: var(--measure); }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+  .masthead {
+    border-top: 3px solid var(--accent);
+    padding-top: var(--s3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: var(--measure);
+  }
+
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s2);
+  }
+
+  /* ── Sections ─────────────────────────────────────────── */
+  section { display: flex; flex-direction: column; gap: var(--s3); }
+
+  h2 {
+    font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 1.72rem;
+    line-height: 1.15;
+    margin: 0;
+    padding-bottom: var(--s1);
+    border-bottom: 1px solid var(--rule);
+    text-wrap: balance;
+  }
+
+  h2 .num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+    margin-right: 0.7em;
+    vertical-align: 0.28em;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    font-size: 1.16rem;
+    margin: var(--s2) 0 0;
+    text-wrap: balance;
+  }
+
+  p { margin: 0; max-width: var(--measure); }
+  section > ul, section > ol { max-width: var(--measure); }
+
+  ul, ol { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: var(--s1); }
+  li { padding-left: 0.15rem; }
+
+  strong { font-weight: 600; }
+  em.term { font-style: normal; color: var(--accent); font-weight: 600; }
+
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.86em;
+  }
+
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+  }
+
+  /* ── Callout ──────────────────────────────────────────── */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: var(--s3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    max-width: var(--measure);
+  }
+  .callout.warn  { border-left-color: var(--gap); }
+  .callout.good  { border-left-color: var(--verified); }
+  .callout-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .callout.warn .callout-label { color: var(--gap); }
+  .callout.good .callout-label { color: var(--verified); }
+
+  /* ── Formula block ────────────────────────────────────── */
+  .formula {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: var(--s3);
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.88rem;
+    line-height: 1.75;
+  }
+  .formula .lbl { color: var(--ink-faint); }
+  .formula .hi  { color: var(--accent); font-weight: 600; }
+
+  /* ── Tables ───────────────────────────────────────────── */
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 720px;
+    font-family: "IBM Plex Sans Condensed", Arial, sans-serif;
+    font-size: 0.87rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  thead th {
+    text-align: left;
+    font-weight: 700;
+    padding: var(--s2) var(--s2);
+    border-bottom: 2px solid var(--rule);
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: var(--s2);
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  td.p-name {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    border-left: 3px solid transparent;
+    padding-left: calc(var(--s2) - 3px + 3px);
+  }
+  tr.st-verified td.p-name { border-left-color: var(--verified); }
+  tr.st-derived  td.p-name { border-left-color: var(--derived); }
+  tr.st-gap      td.p-name { border-left-color: var(--gap); }
+
+  td.num, th.num { text-align: right; white-space: nowrap; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.78rem; }
+
+  /* ── Status chips ─────────────────────────────────────── */
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 0.16em 0.5em;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip.verified { color: var(--verified); }
+  .chip.derived  { color: var(--derived); }
+  .chip.gap      { color: var(--gap); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    align-items: center;
+    font-family: "IBM Plex Sans Condensed", Arial, sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+  .legend span.item { display: flex; align-items: center; gap: 0.45em; }
+
+  /* ── Source list ──────────────────────────────────────── */
+  .sources {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    font-size: 0.9rem;
+  }
+  .source {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    gap: var(--s2);
+    padding-bottom: var(--s2);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .source .idx {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--accent);
+    font-weight: 600;
+    padding-top: 0.25em;
+  }
+  .source .doc { color: var(--ink-soft); font-size: 0.84rem; }
+
+  hr.rule { border: none; border-top: 1px solid var(--rule); margin: 0; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; }
+    .wrap { padding: var(--s4) var(--s2) var(--s5); gap: var(--s4); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Phase A · 파라미터 교정 계획</div>
+    <h1>NASA 실측치로 시뮬레이터 파라미터 교체하기</h1>
+    <p class="standfirst">
+      현재 엔진의 무차원 0–1 지표를 ppm·m³/s·1/m 같은 실단위로 전환하고,
+      각 상수를 어떤 NASA 1차 자료로 대체할 수 있는지 조사한 결과입니다.
+      확인·유도·공백 세 등급으로 분류했습니다.
+    </p>
+    <div class="meta">
+      <span>작성 2026-08-22</span>
+      <span>대상 <code>src/spacecraft_sim/config.py</code></span>
+      <span>1차 자료 8건 직접 확인</span>
+    </div>
+  </header>
+
+  <!-- ══════════════════ 1. 요약 ══════════════════ -->
+  <section>
+    <h2><span class="num">01</span>핵심 결론</h2>
+
+    <p class="col">
+      조사 결과 <strong>파라미터 값을 바꾸는 것보다 단위 체계를 바꾸는 것이 본질</strong>이라는 점이
+      분명해졌습니다. NASA가 공개하는 수치는 ppm, m³/s, mm/s 같은 실단위인데 현재 엔진은
+      단위 없는 0–1 지표를 쓰기 때문에, 숫자만 갈아끼우는 방식으로는 연결되지 않습니다.
+      다행히 전달 공식의 구조는 그대로 두고 변수의 정의만 바꾸면 됩니다.
+    </p>
+
+    <div class="callout good">
+      <div class="callout-label">가장 중요한 발견</div>
+      <p>
+        실단위로 환산해 보니 <strong>현재 모델은 실제보다 훨씬 공격적</strong>입니다.
+        소산 계수 <code>HAZARD_DECAY = 0.005/s</code>는 ISS 환기 유량 기준 실제값
+        <code>6.7 × 10⁻⁴/s</code>보다 약 <strong>7.4배 큽니다</strong>. 반대로 오염물질 축적은
+        훨씬 느려서, 600초 지평선으로는 SMAC 한계 근처에도 도달하지 못합니다.
+        교정 후에는 지평선을 <strong>1–2시간</strong>으로 늘려야 의미 있는 결과가 나옵니다.
+      </p>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-label">정정 필요</div>
+      <p>
+        스펙에 FMECA 근거로 인용된 <strong>NASA-STD-8719.13은 소프트웨어 안전 표준</strong>이며
+        2020년 6월 취소(cancelled)되었습니다. FMECA 절차의 정본은 <strong>MIL-STD-1629A</strong>,
+        NASA 측 신뢰성 요구사항은 <strong>NASA-STD-8729.1A</strong>입니다. 제출물에 표준 번호를
+        인용하실 계획이라면 이 부분을 교체하셔야 합니다.
+      </p>
+    </div>
+
+    <h3>세 줄 요약</h3>
+    <ol class="col">
+      <li><strong>독성 임계값은 즉시 교체 가능합니다.</strong> SMAC 1시간 한계가 화합물별로 공표되어 있습니다 — CO 425 ppm, HCN 8 ppm, HCl 5 ppm.</li>
+      <li><strong>전달 계수도 실물로 대체됩니다.</strong> <code>TRANSFER_PROXY</code>의 서열값을 IMV 실제 유량(150 cfm ≈ 0.071 m³/s)으로 바꾸면 물리 질량수지가 됩니다.</li>
+      <li><strong>승무원 중요도는 데이터로 대체 불가합니다.</strong> 직업별 데이터셋은 존재하지 않으며, 실제 FMECA를 수행하거나 leave-one-out 실측으로 대체해야 합니다.</li>
+    </ol>
+  </section>
+
+  <!-- ══════════════════ 2. 1차 자료 ══════════════════ -->
+  <section>
+    <h2><span class="num">02</span>직접 확인한 1차 자료</h2>
+    <p class="col">
+      검색 요약이 아니라 원문 PDF를 내려받아 표를 직접 읽은 값만 실었습니다.
+      웹 검색 요약은 CO의 1시간 SMAC을 15 ppm으로 잘못 전달했으나,
+      원문 확인 결과 15 ppm은 30일 이상 장기 한계이고 1시간 한계는 425 ppm이었습니다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>문서</th><th>확인한 내용</th><th>교정 대상</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="st-verified">
+            <td class="p-name">JSC 20584 Rev C</td>
+            <td>SMAC 표 (2024-06-13). CO·HCN·HCl 1시간~1000일 한계</td>
+            <td>승무원 노출 임계값</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">Saffire-II 분석</td>
+            <td>미소중력 PMMA 열분해 전선 0.05–0.06 mm/s, 연소소진 0.014–0.05 mm/s. 강제유동 200 mm/s</td>
+            <td>화재 소스 프로파일</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">Saffire 운용 보고서</td>
+            <td>SIBAL 직물 면 75%/유리섬유 25%, 면밀도 18.0 mg/cm², 유동 20 cm/s</td>
+            <td>질량 방출률 계산</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">NTRS 20150009509</td>
+            <td>IMV 팬 유량 140–150 cfm, 4.25 m³/min @ 150 cfm</td>
+            <td>연결 전달 계수</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">NASA-STD-6001B</td>
+            <td>Test 1 상방 화염전파: 연소 길이 15.2 cm 미만이어야 합격</td>
+            <td>재료 선정 / 프로파일 분류</td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">ISS 화재 감지 개요</td>
+            <td>레이저 산란/차폐식 광전 감지기. <strong>환기 필터 흡입 덕트에 설치</strong>. 경보는 2회 연속 임계 초과 시</td>
+            <td>탐지 지연 모델</td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">모듈 제원</td>
+            <td>Destiny 105 m³, Unity 71 m³, Harmony 70 m³ (여압 부피)</td>
+            <td>농도 계산 분모</td>
+          </tr>
+          <tr class="st-gap">
+            <td class="p-name">MIL-STD-1629A</td>
+            <td>FMECA 절차 정본 (NASA KSC 서버에 공개)</td>
+            <td>기능 criticality 산출 방법론</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="chip verified">확인</span> 원문에서 수치 직접 확인</span>
+      <span class="item"><span class="chip derived">유도</span> 확인된 값에서 계산 필요</span>
+      <span class="item"><span class="chip gap">공백</span> 공개 데이터 없음</span>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 3. SMAC ══════════════════ -->
+  <section>
+    <h2><span class="num">03</span>SMAC: 승무원 임계값의 실제 근거</h2>
+
+    <p class="col">
+      JSC 20584 Rev C에서 직접 읽은 값입니다. 괄호는 mg/m³.
+      화재 시나리오에서 의미 있는 것은 <strong>1시간 및 24시간 한계</strong>입니다
+      (문서 자체가 이 둘을 비상 상황용으로 규정합니다).
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>물질</th><th class="num">1시간</th><th class="num">24시간</th>
+            <th class="num">7일</th><th class="num">30일</th><th>주요 영향</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="st-verified">
+            <td class="p-name">CO 일산화탄소</td>
+            <td class="num">425 (485)</td><td class="num">100 (114)</td>
+            <td class="num">55 (63)</td><td class="num">15 (17)</td>
+            <td>중추신경 억제, 부정맥</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">HCN 시안화수소</td>
+            <td class="num">8 (9)</td><td class="num">4 (4.5)</td>
+            <td class="num">1 (1.1)</td><td class="num">1 (1.1)</td>
+            <td>중추신경 억제, 두통, 구역</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">HCl 염화수소</td>
+            <td class="num">5 (8)</td><td class="num">2 (3)</td>
+            <td class="num">1 (1.5)</td><td class="num">1 (1.5)</td>
+            <td>눈·점막 자극</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">모델 설계에 미치는 영향</div>
+      <p>
+        <strong>HCN의 1시간 한계는 CO의 53분의 1입니다.</strong> 즉 화재 시 실제로 승무원을
+        먼저 위협하는 것은 대개 CO가 아니라 HCN입니다. 현재 모델처럼 단일
+        <code>smoke_gas_load</code> 하나로 뭉뚱그리면 이 차이가 사라집니다.
+        <strong>화학종별로 분리해 추적</strong>하고 각각을 자기 SMAC에 대비시키는 구조가
+        필요합니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 4. 단위 전환 ══════════════════ -->
+  <section>
+    <h2><span class="num">04</span>단위 체계 전환 설계</h2>
+
+    <p class="col">
+      현재 공식은 무차원 지표를 더하고 뺍니다. 이를 <em class="term">질량 수지</em>
+      방정식으로 재정의하면 모든 항이 실제 물리량이 되고, NASA 수치를 그대로 대입할 수
+      있습니다. 구조는 동일하므로 <code>hazard.py</code>의 함수 형태는 유지됩니다.
+    </p>
+
+    <div class="formula">
+<span class="lbl">현재 (무차원)</span>
+H_j += dt · Σ(A_ij · W_ij · R_i) − dt · C_j · H_j
+<span class="lbl">   H: 0–1 지표   W: 서열 프록시   R: 0–1 방출   C: 임의 소산</span>
+
+<span class="lbl">제안 (질량 수지, 화학종 s 별로)</span>
+<span class="hi">V_j · dC_s,j/dt = Σ_i Q_ij·(C_s,i − C_s,j) + Y_s·ṁ_j − Q_scrub·C_s,j</span>
+<span class="lbl">   C: mg/m³      V: m³           Q: m³/s</span>
+<span class="lbl">   ṁ: 연료 질량손실률 mg/s        Y: 화학종 수율 mg/mg</span>
+    </div>
+
+    <h3>변수 재정의</h3>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>현재 변수</th><th>제안</th><th>단위</th><th>무엇을 결정하는가</th></tr>
+        </thead>
+        <tbody>
+          <tr class="st-verified">
+            <td class="p-name">smoke_gas_load</td>
+            <td class="p-name">co_mg_m3 / hcn_mg_m3</td>
+            <td class="num">mg/m³</td>
+            <td>승무원 노출 (SMAC 대비)</td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">— (신규)</td>
+            <td class="p-name">extinction</td>
+            <td class="num">1/m</td>
+            <td>감지기 경보, 시야 확보</td>
+          </tr>
+          <tr class="st-gap">
+            <td class="p-name">thermal_load</td>
+            <td class="p-name">temperature</td>
+            <td class="num">°C</td>
+            <td>장비 손상</td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">TRANSFER_PROXY[cls]</td>
+            <td class="p-name">connection.flow_m3_s</td>
+            <td class="num">m³/s</td>
+            <td>모듈 간 전달</td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">module (부피 없음)</td>
+            <td class="p-name">module.volume_m3</td>
+            <td class="num">m³</td>
+            <td>농도 계산 분모</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">
+      가장 큰 구조 변화는 <strong>모듈에 부피가 생긴다</strong>는 점입니다. 지금은 모든 모듈이
+      동일하게 취급되지만, 실제로는 105 m³ 실험동과 70 m³ 노드에서 같은 화재가 전혀 다른
+      농도를 만듭니다. <code>Module</code> 스키마에 <code>volume_m3</code> 필드 하나만
+      추가하면 됩니다.
+    </p>
+  </section>
+
+  <!-- ══════════════════ 5. 전달 계수 ══════════════════ -->
+  <section>
+    <h2><span class="num">05</span>전달 계수와 소산율: 실물로 계산하기</h2>
+
+    <p class="col">
+      IMV 유량이 확인되었으므로 <code>TRANSFER_PROXY</code>의 LOW/MEDIUM/HIGH 서열은
+      더 이상 필요 없습니다. 연결마다 실제 유량을 갖게 됩니다.
+    </p>
+
+    <div class="formula">
+<span class="lbl">IMV 정격 유량</span>
+150 cfm × 0.0283168 m³/ft³ = 4.25 m³/min = <span class="hi">0.0708 m³/s</span>
+
+<span class="lbl">공기 교환 시간 (모듈 부피 ÷ 유량)</span>
+Destiny 105 m³ ÷ 4.25 = <span class="hi">24.7 분</span>
+Node     70 m³ ÷ 4.25 = <span class="hi">16.5 분</span>
+
+<span class="lbl">희석 상수 λ = Q / V</span>
+0.0708 / 105 = <span class="hi">6.74 × 10⁻⁴ /s</span>
+현재 HAZARD_DECAY = 5.0 × 10⁻³ /s  →  <span class="hi">7.4배 과대</span>
+    </div>
+
+    <p class="col">
+      다만 실제 소산은 환기 희석만이 아닙니다. ISS는 <strong>ARS/CDRA 같은 공기정화
+      장치</strong>가 오염물질을 실제로 제거하므로, 총 제거율은 희석 항과 정화 항의 합입니다.
+      정화 장치의 화학종별 제거 효율은 별도 자료가 필요하며, 이는 공백 항목으로 분류했습니다.
+    </p>
+
+    <div class="callout">
+      <div class="callout-label">감지기 위치가 알려주는 것</div>
+      <p>
+        ISS 연기 감지기는 <strong>환기 필터 흡입 덕트에 설치</strong>되어 있습니다. 즉 탐지는
+        연기가 공기 흐름을 타고 감지기까지 도달해야 일어납니다. 이는
+        <code>DETECTION_DELAY_RANGE_SECONDS</code>를 임의 범위가 아니라
+        <strong>모듈 혼합 시간에서 유도할 수 있다</strong>는 뜻입니다 — 그리고 환기가 꺼지면
+        탐지 자체가 지연된다는 중요한 결합 효과가 생깁니다. 현재 모델에는 이 결합이 없습니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 6. 검증 계산 ══════════════════ -->
+  <section>
+    <h2><span class="num">06</span>차수 검증: 지평선을 다시 잡아야 합니다</h2>
+
+    <p class="col">
+      확인된 값으로 실제 농도가 얼마나 빨리 오르는지 계산해 봤습니다.
+      화염 전파 속도와 화학종 수율은 아직 공백이므로 <strong>가정값을 명시</strong>하고
+      차수만 확인하는 목적입니다.
+    </p>
+
+    <div class="formula">
+<span class="lbl">가정: SIBAL 직물, 전파속도 1 mm/s(가정), 폭 40 cm</span>
+ṁ = 18.0 mg/cm² × 0.1 cm/s × 40 cm = <span class="hi">72 mg/s</span>
+
+<span class="lbl">가정: CO 수율 0.05 mg/mg</span>
+CO 발생 = 3.6 mg/s
+Destiny 105 m³ 에서 → dC/dt = <span class="hi">0.034 mg/m³·s</span>
+
+<span class="lbl">환기 없을 때 CO 1시간 SMAC(485 mg/m³) 도달</span>
+485 / 0.034 = 14,100 s = <span class="hi">약 3.9 시간</span>
+
+<span class="lbl">환기 작동 시 평형 농도 C∞ = (ṁ/V) / λ</span>
+0.034 / 6.74×10⁻⁴ = <span class="hi">51 mg/m³ (약 45 ppm)</span>
+→ 1시간 SMAC 425 ppm에 <span class="hi">도달하지 않음</span>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-label">이 계산이 뒤집는 것</div>
+      <p>
+        이 규모의 화재에서 <strong>환기가 살아 있으면 CO는 SMAC에 도달하지 않습니다.</strong>
+        현재 모델이 600초 만에 지표를 포화시키는 것은 실제와 크게 다릅니다.
+        교정 후에는 세 가지가 따라옵니다. 첫째 <strong>지평선을 3,600–7,200초로</strong> 늘려야
+        하고, 둘째 승무원 위험의 주된 경로가 독성이 아니라 <strong>연기 차폐에 의한 시야
+        상실과 탈출 지연</strong>일 가능성이 크며, 셋째 <strong>환기 차단 조치의 성격이
+        역전됩니다</strong> — 확산은 막지만 희석도 함께 잃기 때문입니다.
+      </p>
+    </div>
+
+    <p class="col">
+      마지막 항목이 특히 중요합니다. 현재 모델에서 <code>shutdown_ventilation</code>은 순수하게
+      이로운 조치로 나오지만, 실단위로 가면 <strong>진짜 트레이드오프</strong>가 됩니다.
+      의사결정 지원 도구로서 훨씬 정직한 결과입니다.
+    </p>
+  </section>
+
+  <!-- ══════════════════ 7. 파라미터 교체표 ══════════════════ -->
+  <section>
+    <h2><span class="num">07</span>파라미터별 교체 계획</h2>
+
+    <p class="col">
+      <code>config.py</code>의 전 항목을 상태별로 분류했습니다. 좌측 색 막대가 등급입니다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>현재 파라미터</th><th class="num">현재값</th>
+            <th>실단위 대체</th><th>근거</th><th>등급</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="st-verified">
+            <td class="p-name">CREW_EXPOSURE_THRESHOLD</td>
+            <td class="num">0.30</td>
+            <td>CO 485 / HCN 9 / HCl 8 mg/m³ (1h)</td>
+            <td>JSC 20584 Rev C</td>
+            <td><span class="chip verified">확인</span></td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">TRANSFER_PROXY</td>
+            <td class="num">0.2 / 0.5 / 0.9</td>
+            <td>연결별 유량 m³/s (IMV 0.071)</td>
+            <td>NTRS 20150009509</td>
+            <td><span class="chip verified">확인</span></td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">HAZARD_DECAY</td>
+            <td class="num">0.005</td>
+            <td>λ = Q/V = 6.74×10⁻⁴ /s + 정화항</td>
+            <td>IMV 유량 ÷ 모듈 부피</td>
+            <td><span class="chip verified">확인</span></td>
+          </tr>
+          <tr class="st-verified">
+            <td class="p-name">HAZARD_REACHED_THRESHOLD</td>
+            <td class="num">0.10</td>
+            <td>소광계수 0.033 /m (= 1%/ft 경보)</td>
+            <td>ISS 감지기 사양</td>
+            <td><span class="chip verified">확인</span></td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">SOURCE_PROFILES.growth</td>
+            <td class="num">0.02 – 0.15</td>
+            <td>전파속도 mm/s (µg PMMA 0.05–0.06)</td>
+            <td>Saffire-II</td>
+            <td><span class="chip derived">유도</span></td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">SOURCE_PROFILES.release_rate</td>
+            <td class="num">0.2 – 0.5</td>
+            <td>ṁ = 면밀도 × 전파속도 × 폭 (mg/s)</td>
+            <td>SIBAL 18.0 mg/cm² + 수율 필요</td>
+            <td><span class="chip derived">유도</span></td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">DETECTION_DELAY_RANGE</td>
+            <td class="num">0–120 s</td>
+            <td>혼합시간 + 2회 확인 주기</td>
+            <td>감지기 위치·알람 로직</td>
+            <td><span class="chip derived">유도</span></td>
+          </tr>
+          <tr class="st-derived">
+            <td class="p-name">HORIZON_SECONDS</td>
+            <td class="num">600</td>
+            <td>3,600 – 7,200 s</td>
+            <td>차수 검증 (§06)</td>
+            <td><span class="chip derived">유도</span></td>
+          </tr>
+          <tr class="st-gap">
+            <td class="p-name">화학종 수율 Y_s</td>
+            <td class="num">— (없음)</td>
+            <td>mg CO / mg 연료</td>
+            <td>재료별 연소생성물 시험 필요</td>
+            <td><span class="chip gap">공백</span></td>
+          </tr>
+          <tr class="st-gap">
+            <td class="p-name">EQUIPMENT_DAMAGE_*</td>
+            <td class="num">0.60 / 0.80</td>
+            <td>장비 내열·내연기 한계</td>
+            <td>공개 자료 없음</td>
+            <td><span class="chip gap">공백</span></td>
+          </tr>
+          <tr class="st-gap">
+            <td class="p-name">CREW_RESPONSE / MOVE</td>
+            <td class="num">60 / 60 s</td>
+            <td>훈련 실측 시간</td>
+            <td>절차서 비공개</td>
+            <td><span class="chip gap">공백</span></td>
+          </tr>
+          <tr class="st-gap">
+            <td class="p-name">FUNCTION_CRITICALITY</td>
+            <td class="num">0.3 – 1.0</td>
+            <td>FMECA 심각도 산출값</td>
+            <td>MIL-STD-1629A 절차 수행</td>
+            <td><span class="chip gap">공백</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 8. 공백 ══════════════════ -->
+  <section>
+    <h2><span class="num">08</span>데이터 공백을 다루는 방법</h2>
+
+    <p class="col">
+      공백 항목은 "찾으면 나오는데 아직 못 찾은 것"과 "원래 존재하지 않는 것"으로
+      성격이 다릅니다. 대응도 달라야 합니다.
+    </p>
+
+    <h3>찾으면 나올 가능성이 있는 것</h3>
+    <p class="col">
+      화학종 수율과 장비 내성 한계는 재료 연소 시험 문헌에 존재할 가능성이 있습니다.
+      다만 우주선 재료 특유의 미소중력 연소 데이터는 지상 시험값과 다르므로, 지상값을
+      쓸 경우 <strong>그 사실을 라벨링</strong>해야 합니다. Saffire가 확인한 바에 따르면
+      미소중력에서 열분해 전파는 18–24배 느리지만 연료 소진율은 1.6–3배만 느립니다 —
+      즉 지상 데이터를 그대로 쓰면 크게 틀립니다.
+    </p>
+
+    <h3>원래 존재하지 않는 것</h3>
+    <p class="col">
+      승무원 기능 criticality는 데이터로 대체할 수 없습니다. 직업별 중요도 데이터셋은
+      윤리적 이유로 만들어지지 않기 때문입니다. 두 가지 정당한 대안이 있습니다.
+    </p>
+    <ul class="col">
+      <li><strong>실제 FMECA 수행</strong> — MIL-STD-1629A 절차에 따라 각 기능 상실의 심각도를 평가해 산출합니다. 근거를 문서로 남길 수 있다는 것이 장점입니다.</li>
+      <li><strong>leave-one-out 실측</strong> — 스펙 A-8.5의 방법입니다. 승무원을 한 명씩 제거해 결과 악화폭을 측정하면 <em class="term">시뮬레이터가 직접 산출한 criticality</em>가 나옵니다. 외부 데이터가 아예 필요 없고, 규칙 기반 표와 교차검증도 됩니다.</li>
+    </ul>
+    <p class="col">
+      두 번째가 현재 엔진 구조와 잘 맞고 방어하기도 쉽습니다. 권고안입니다.
+    </p>
+  </section>
+
+  <!-- ══════════════════ 9. 구현 순서 ══════════════════ -->
+  <section>
+    <h2><span class="num">09</span>권고 구현 순서</h2>
+
+    <p class="col">
+      한 번에 전부 바꾸면 어느 변경이 결과를 흔들었는지 알 수 없습니다.
+      각 단계마다 테스트가 통과하는 상태를 유지하도록 나눴습니다.
+    </p>
+
+    <ol class="col">
+      <li><strong>스키마에 부피 추가</strong> — <code>Module.volume_m3</code>, <code>Connection.flow_m3_s</code> 필드. 기존 동작 불변, 테스트 전부 통과 유지.</li>
+      <li><strong>전달 공식을 질량 수지로 교체</strong> — <code>hazard.py</code>의 항 정의만 변경. 단위는 아직 임의여도 무방.</li>
+      <li><strong>화학종 분리</strong> — <code>smoke_gas_load</code> 하나를 CO·HCN 농도로 분리하고 소광계수를 별도 추적.</li>
+      <li><strong>확인된 값 투입</strong> — SMAC 임계값, IMV 유량, 감지기 임계값. 여기서 결과가 크게 달라집니다.</li>
+      <li><strong>지평선·시간 스텝 재조정</strong> — 3,600 s 이상으로 늘리고 <code>DT</code>를 30–60 s로 키워 계산량을 보전.</li>
+      <li><strong>공백 항목 라벨링</strong> — 남은 가정값에 <code>ASSUMED_</code> 접두어를 붙여 확인값과 코드 수준에서 구분.</li>
+      <li><strong>leave-one-out criticality</strong> — 마지막. 앞 단계가 안정된 뒤에 붙입니다.</li>
+    </ol>
+
+    <div class="callout">
+      <div class="callout-label">유지해야 할 원칙</div>
+      <p>
+        교정 후에도 <strong>확인값과 가정값은 코드에서 구분되어야 합니다.</strong> 현재
+        <code>config.py</code>의 윤리·검증 고지가 "전부 PoC 가정"이라고 선언하고 있는데,
+        일부가 실측치로 바뀌면 이 고지도 <strong>항목별로 정확하게</strong> 다시 써야 합니다.
+        어디까지가 NASA 근거이고 어디부터가 우리 가정인지를 흐리는 것이 가장 큰 위험입니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 10. 출처 ══════════════════ -->
+  <section>
+    <h2><span class="num">10</span>출처</h2>
+
+    <div class="sources">
+      <div class="source">
+        <div class="idx">01</div>
+        <div>
+          <a href="https://www.nasa.gov/wp-content/uploads/2024/06/jsc-20584-smacs-rev-c-final.pdf">Spacecraft Maximum Allowable Concentrations for Airborne Contaminants</a>
+          <div class="doc">JSC 20584 Rev C, NASA JSC, 2024-06-13. CO·HCN·HCl SMAC 표 직접 확인.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">02</div>
+        <div>
+          <a href="https://ttu-ir.tdl.org/server/api/core/bitstreams/90cdab5b-b19a-4ce7-a1a2-4d3bd252caa8/content">Analysis of Saffire II two-sided concurrent flame spread</a>
+          <div class="doc">미소중력 PMMA 전파·소진 속도, ISS 대표 유동 200 mm/s.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">03</div>
+        <div>
+          <a href="https://ntrs.nasa.gov/api/citations/20170002628/downloads/20170002628.pdf">Operation and Development Status of the Spacecraft Fire Experiment (Saffire)</a>
+          <div class="doc">NTRS 20170002628. SIBAL 직물 조성 및 시험 조건.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">04</div>
+        <div>
+          <a href="https://ntrs.nasa.gov/api/citations/20150009509/downloads/20150009509.pdf">Inter-Module Ventilation Changes to the International Space Station Vehicle</a>
+          <div class="doc">NTRS 20150009509. IMV 팬 유량 140–150 cfm.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">05</div>
+        <div>
+          <a href="https://ntrs.nasa.gov/api/citations/20030053429/downloads/20030053429.pdf">Overview of ISS US Fire Detection</a>
+          <div class="doc">NTRS 20030053429. 감지기 원리·설치 위치·경보 로직.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">06</div>
+        <div>
+          <a href="https://ntrs.nasa.gov/api/citations/20170004702/downloads/20170004702.pdf">NASA-STD-6001B Test 1 Upward Flame Propagation</a>
+          <div class="doc">NTRS 20170004702. 연소 길이 15.2 cm 합격 기준.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">07</div>
+        <div>
+          <a href="https://standards.nasa.gov/standard/NASA/NASA-STD-871913">NASA Software Safety Standard (NASA-STD-8719.13)</a>
+          <div class="doc">스펙의 FMECA 인용 오류 확인용. 소프트웨어 안전 표준이며 2020-06-10 취소.</div>
+        </div>
+      </div>
+      <div class="source">
+        <div class="idx">08</div>
+        <div>
+          <a href="https://extapps.ksc.nasa.gov/Reliability/Documents/milstd1629_FMEA.pdf">MIL-STD-1629A — Procedures for Performing a FMECA</a>
+          <div class="doc">FMECA 절차 정본. 함께 참고: NASA-STD-8729.1A 신뢰성·정비성 요구사항.</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="rule">
+    <p class="col" style="color: var(--ink-faint); font-size: 0.88rem;">
+      본 리포트의 수치 중 §06 차수 검증은 전파속도와 화학종 수율에 가정값을 사용했으며
+      해당 가정을 본문에 명시했습니다. 그 외 표에 실린 값은 위 1차 자료에서 직접 읽은 것입니다.
+    </p>
+  </section>
+
+</div>

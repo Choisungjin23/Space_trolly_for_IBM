@@ -1,0 +1,147 @@
+{
+  "mission_phase": "cruise",
+  "modules": [
+    {
+      "id": "M1",
+      "name": "Habitat",
+      "type": "habitat",
+      "volume_m3": 105.0,
+      "atmosphere": { "pressure": 101.3, "o2": 0.21 },
+      "crew_ids": ["C1", "C2"],
+      "equipment_ids": ["eq_gnc"]
+    },
+    {
+      "id": "M2",
+      "name": "Storage",
+      "type": "storage",
+      "volume_m3": 70.0,
+      "atmosphere": { "pressure": 101.3, "o2": 0.21 },
+      "fire_state": "sustained",
+      "source_profile_id": "GRADUAL_PMMA_GROWTH"
+    },
+    {
+      "id": "M3",
+      "name": "Life Support",
+      "type": "life_support",
+      "volume_m3": 105.0,
+      "atmosphere": { "pressure": 101.3, "o2": 0.21 },
+      "crew_ids": ["C3"],
+      "equipment_ids": ["eq_ls"]
+    },
+    {
+      "id": "M4",
+      "name": "Power",
+      "type": "power",
+      "volume_m3": 70.0,
+      "atmosphere": { "pressure": 101.3, "o2": 0.21 },
+      "crew_ids": ["C4"],
+      "equipment_ids": ["eq_pwr"]
+    },
+    {
+      "id": "M5",
+      "name": "Propulsion",
+      "type": "propulsion",
+      "volume_m3": 70.0,
+      "atmosphere": { "pressure": 101.3, "o2": 0.21 },
+      "equipment_ids": ["eq_prop"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c_m1_m2",
+      "source": "M1",
+      "target": "M2",
+      "type": "hatch",
+      "path_state": "open"
+    },
+    {
+      "id": "c_m2_m3",
+      "source": "M2",
+      "target": "M3",
+      "type": "imv",
+      "path_state": "open",
+      "ventilation_state": "on",
+      "airflow_direction": "source_to_target",
+      "flow_m3_s": 0.0708
+    },
+    {
+      "id": "c_m3_m4",
+      "source": "M3",
+      "target": "M4",
+      "type": "hatch",
+      "path_state": "open"
+    },
+    {
+      "id": "c_m4_m5",
+      "source": "M4",
+      "target": "M5",
+      "type": "hatch",
+      "path_state": "open"
+    },
+    {
+      "id": "c_m1_m4",
+      "source": "M1",
+      "target": "M4",
+      "type": "hatch",
+      "path_state": "open"
+    },
+    {
+      "id": "c_m2_m5_leak",
+      "source": "M2",
+      "target": "M5",
+      "type": "leak",
+      "path_state": "unknown",
+      "airflow_direction": "source_to_target"
+    }
+  ],
+  "crew": [
+    { "id": "C1", "name": "Commander Vega", "role": "commander", "module_id": "M1" },
+    { "id": "C2", "name": "Engineer Okafor", "role": "engineer", "module_id": "M1" },
+    { "id": "C3", "name": "Medic Lindqvist", "role": "medic", "module_id": "M3" },
+    { "id": "C4", "name": "Pilot Aram", "role": "pilot", "module_id": "M4" }
+  ],
+  "equipment": [
+    { "id": "eq_gnc", "name": "GNC computer", "module_id": "M1", "system": "gnc" },
+    { "id": "eq_ls", "name": "Life support rack", "module_id": "M3", "system": "life_support" },
+    { "id": "eq_pwr", "name": "Main power bus", "module_id": "M4", "system": "power" },
+    { "id": "eq_prop", "name": "Main engine controller", "module_id": "M5", "system": "propulsion" }
+  ],
+  "systems": [
+    {
+      "id": "life_support",
+      "name": "Life Support",
+      "depends_on_modules": ["M3"],
+      "depends_on_equipment": ["eq_ls"],
+      "operator_function": "life_support_ops",
+      "repair_function": "repair"
+    },
+    {
+      "id": "power",
+      "name": "Power",
+      "depends_on_modules": ["M4"],
+      "depends_on_equipment": ["eq_pwr"],
+      "operator_function": "power_ops",
+      "repair_function": "repair"
+    },
+    {
+      "id": "propulsion",
+      "name": "Propulsion",
+      "depends_on_modules": ["M5"],
+      "depends_on_equipment": ["eq_prop"],
+      "operator_function": "propulsion_ops",
+      "repair_function": "repair"
+    },
+    {
+      "id": "gnc",
+      "name": "Guidance, Navigation & Control",
+      "depends_on_modules": ["M1"],
+      "depends_on_equipment": ["eq_gnc"],
+      "operator_function": "navigation",
+      "repair_function": "repair"
+    }
+  ],
+  "capabilities": {
+    "RETURN": ["power", "propulsion", "gnc"],
+    "HABITATION": ["life_support", "power"]
+  }
+}

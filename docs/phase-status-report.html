@@ -1,0 +1,523 @@
+<title>Emergency Advisor Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+  :root {
+    --paper:     #f4f6f8;
+    --surface:   #ffffff;
+    --sunk:      #eceff3;
+    --ink:       #141c27;
+    --ink-soft:  #56636f;
+    --ink-faint: #7d8996;
+    --rule:      #dbe1e8;
+    --rule-soft: #e8ecf1;
+    --accent:    #1d4e6f;
+    --done:      #0e7c66;
+    --open:      #9a6510;
+    --blocked:   #a33a3a;
+    --code-bg:   #eef1f5;
+
+    --measure: 66ch;
+    --s1: .35rem; --s2: .7rem; --s3: 1.1rem;
+    --s4: 1.8rem; --s5: 2.8rem; --s6: 4.2rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0e141b;
+      --surface:   #151e28;
+      --sunk:      #111922;
+      --ink:       #e2e8ef;
+      --ink-soft:  #9aa7b4;
+      --ink-faint: #74828f;
+      --rule:      #26323f;
+      --rule-soft: #1d2733;
+      --accent:    #74b4d6;
+      --done:      #4cbfa2;
+      --open:      #d5a343;
+      --blocked:   #e08585;
+      --code-bg:   #1b2530;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0e141b;
+    --surface:   #151e28;
+    --sunk:      #111922;
+    --ink:       #e2e8ef;
+    --ink-soft:  #9aa7b4;
+    --ink-faint: #74828f;
+    --rule:      #26323f;
+    --rule-soft: #1d2733;
+    --accent:    #74b4d6;
+    --done:      #4cbfa2;
+    --open:      #d5a343;
+    --blocked:   #e08585;
+    --code-bg:   #1b2530;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--s5) var(--s3) var(--s6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s5);
+  }
+
+  .col { max-width: var(--measure); }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+  .masthead {
+    border-top: 3px solid var(--accent);
+    padding-top: var(--s3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst { font-size: 1.1rem; color: var(--ink-soft); margin: 0; max-width: var(--measure); }
+
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem;
+    color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: var(--s3);
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s2);
+  }
+
+  /* ── Status band ──────────────────────────────────────── */
+  .band {
+    display: grid;
+    gap: var(--s2);
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
+
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    padding: var(--s3);
+    display: flex; flex-direction: column; gap: var(--s1);
+  }
+
+  .phase-card .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem; letter-spacing: .1em; color: var(--accent); font-weight: 600;
+  }
+  .phase-card h3 {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-size: 1.15rem; margin: 0; font-weight: 700;
+  }
+  .phase-card .sub { font-size: .84rem; color: var(--ink-soft); }
+  .phase-card .count {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 1.55rem; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: var(--done); margin-top: var(--s1);
+  }
+  .phase-card .count span { font-size: .7rem; color: var(--ink-faint); font-weight: 400; }
+
+  /* ── Sections ─────────────────────────────────────────── */
+  section { display: flex; flex-direction: column; gap: var(--s3); }
+
+  h2 {
+    font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700; font-size: 1.7rem; line-height: 1.15; margin: 0;
+    padding-bottom: var(--s1); border-bottom: 1px solid var(--rule);
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8rem; color: var(--accent); margin-right: .7em;
+    vertical-align: .3em; font-weight: 600;
+  }
+
+  h3.sub-head {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 700; font-size: .78rem; letter-spacing: .09em;
+    text-transform: uppercase; margin: 0 0 var(--s2);
+  }
+  h3.sub-head.done { color: var(--done); }
+  h3.sub-head.open { color: var(--open); }
+
+  p { margin: 0; max-width: var(--measure); }
+
+  .split {
+    display: grid; gap: var(--s3);
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    align-items: start;
+  }
+
+  .pane {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: var(--s3);
+  }
+  .pane.sunk { background: var(--sunk); }
+
+  ul.items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s2); }
+  ul.items li { font-size: .92rem; line-height: 1.55; padding-left: 1.1rem; position: relative; }
+  ul.items li::before {
+    content: ""; position: absolute; left: 0; top: .62em;
+    width: .42rem; height: .42rem; border-radius: 50%;
+    background: var(--done);
+  }
+  ul.items.open li::before { background: var(--open); }
+  ul.items li .why { display: block; color: var(--ink-soft); font-size: .84rem; margin-top: .12rem; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .84em; background: var(--code-bg);
+    padding: .08em .34em; border-radius: 3px;
+  }
+
+  /* ── Chips ────────────────────────────────────────────── */
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .63rem; font-weight: 600; letter-spacing: .05em;
+    padding: .12em .45em; border: 1px solid currentColor; border-radius: 2px;
+    margin-right: .45em; vertical-align: .08em; white-space: nowrap;
+  }
+  .chip.blocked { color: var(--blocked); }
+  .chip.high    { color: var(--open); }
+  .chip.mid     { color: var(--accent); }
+  .chip.low     { color: var(--ink-faint); }
+
+  /* ── Callout ──────────────────────────────────────────── */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: var(--s3);
+    display: flex; flex-direction: column; gap: var(--s2);
+    max-width: var(--measure);
+  }
+  .callout.warn { border-left-color: var(--blocked); }
+  .callout-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem; letter-spacing: .11em; text-transform: uppercase;
+    font-weight: 600; color: var(--accent);
+  }
+  .callout.warn .callout-label { color: var(--blocked); }
+
+  /* ── Next-steps table ─────────────────────────────────── */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table {
+    border-collapse: collapse; width: 100%; min-width: 640px;
+    font-family: "IBM Plex Sans Condensed", Arial, sans-serif;
+    font-size: .88rem; font-variant-numeric: tabular-nums;
+  }
+  thead th {
+    text-align: left; font-weight: 700; padding: var(--s2);
+    border-bottom: 2px solid var(--rule); color: var(--ink-soft);
+    font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap;
+  }
+  tbody td { padding: var(--s2); border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.step {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem; white-space: nowrap; color: var(--accent); font-weight: 600;
+  }
+
+  hr.rule { border: none; border-top: 1px solid var(--rule); margin: 0; }
+  .footnote { color: var(--ink-faint); font-size: .86rem; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; }
+    .wrap { padding: var(--s4) var(--s2) var(--s5); gap: var(--s4); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">IBM AI Builders Challenge · 진행 보고</div>
+    <h1>우주선 비상 의사결정 지원 — 3단계 진행 현황</h1>
+    <p class="standfirst">
+      2026-08-22 하루 동안 세 페이즈를 모두 구축하고 통합했습니다. 무엇이 끝났고
+      무엇이 남았는지를 페이즈별로 정리한 문서입니다.
+    </p>
+    <div class="meta">
+      <span>작성 2026-08-23</span>
+      <span>작업일 2026-08-22</span>
+      <span>테스트 225개 전부 통과</span>
+      <span>배포본 0.3 MB</span>
+    </div>
+  </header>
+
+  <!-- ═══════════ 상태 밴드 ═══════════ -->
+  <section>
+    <div class="band">
+      <div class="phase-card">
+        <div class="tag">PHASE A</div>
+        <h3>시뮬레이션 엔진</h3>
+        <div class="sub">실단위 종 질량수지, NASA 교정</div>
+        <div class="count">90 <span>tests</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="tag">PHASE B</div>
+        <h3>제품 계층</h3>
+        <div class="sub">캔버스 빌더 + FastAPI, 엔진 연결</div>
+        <div class="count">54 <span>tests</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="tag">PHASE C</div>
+        <h3>다중 에이전트</h3>
+        <div class="sub">7개 에이전트, 그라운딩 검증</div>
+        <div class="count">81 <span>tests</span></div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-label">가장 먼저 처리해야 할 것</div>
+      <p>
+        <strong>Phase C의 에이전트가 실제 모델과 한 번도 대화한 적이 없습니다.</strong>
+        모든 테스트는 결정론적 스텁으로 돌아갑니다. WATSONX 키를 넣고 첫 실행을 해봐야
+        프롬프트가 실제로 통하는지 알 수 있고, 경험상 JSON 스키마 준수와 근거 포인터
+        표기에서 조정이 필요할 가능성이 높습니다. 이것이 남은 작업 중 유일하게
+        <em>결과를 예측할 수 없는</em> 항목입니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════ PHASE A ═══════════ -->
+  <section>
+    <h2><span class="num">A</span>시뮬레이션 엔진</h2>
+    <p class="col">
+      "무엇이 일어났는가"에 답하는 계층. 확률 기반 화재 확산 모델을 폐기하고
+      실단위 질량수지 엔진으로 처음부터 다시 만들었습니다.
+    </p>
+
+    <div class="split">
+      <div class="pane">
+        <h3 class="sub-head done">어제 완료</h3>
+        <ul class="items">
+          <li><strong>범용 엔진 재작성</strong>
+            <span class="why">모듈 3개든 15개든 동작. 하드코딩된 ID 없음.</span></li>
+          <li><strong>NASA 1차 자료 교정</strong>
+            <span class="why">SMAC(JSC 20584 Rev C), Saffire I·II, IMV 유량, ISS 감지기 임계값, NASA-STD-6001B, MIL-STD-1629A 원문 확인.</span></li>
+          <li><strong>무차원 지표 → 실단위 전환</strong>
+            <span class="why">종별 농도 mg/m³, 유량 m³/s, 소광계수 1/m. 부수 효과로 연기 다중 홉 전파가 자동 해결.</span></li>
+          <li><strong>출처 표기 체계</strong>
+            <span class="why">상수 8개 <code>VERIFIED_</code>, 29개 <code>ASSUMED_</code>. 접두어 없는 상수가 생기면 빌드 실패.</span></li>
+          <li><strong>탐지를 계산으로 전환</strong>
+            <span class="why">연기가 실제로 경보 수준에 도달하는 시각을 엔진이 계산. 환기를 끄면 자기 경보가 늦어지는 결합까지 반영.</span></li>
+          <li><strong>승무원↔시스템 결합</strong>
+            <span class="why">운용자가 없으면 시스템 사용 불가, 수리 담당자가 현장에 있어야 복구. leave-one-out criticality가 실제 수치를 내기 시작.</span></li>
+        </ul>
+      </div>
+
+      <div class="pane sunk">
+        <h3 class="sub-head open">남은 작업</h3>
+        <ul class="items open">
+          <li><span class="chip high">HIGH</span><strong>몬테카를로 결함 수정</strong>
+            <span class="why"><code>montecarlo.py</code>가 <code>RETURN</code>/<code>HABITATION</code>을 하드코딩. 다른 capability를 쓰는 시나리오에서 카운트가 공허하게 n/n으로 나옴. 현재 Phase C 어댑터가 우회 중.</span></li>
+          <li><span class="chip high">HIGH</span><strong>화학종 수율 확보</strong>
+            <span class="why">연료 mg당 CO/HCN/soot 발생량. 최대 데이터 공백. 지상 시험값은 전용 불가 — Saffire가 미소중력에서 열분해 확산 18~24배 느림을 확인.</span></li>
+          <li><span class="chip mid">MID</span><strong>소광계수 1차 자료 확인</strong>
+            <span class="why">7.6 m²/g를 문헌값으로 썼으나 원문 미확인.</span></li>
+          <li><span class="chip mid">MID</span><strong>장비 내성·승무원 시간</strong>
+            <span class="why">장비 내열 한계, 대응·이동 시간이 전부 가정값. 훈련 기록이 공개되지 않음.</span></li>
+          <li><span class="chip mid">MID</span><strong>대기 조건 피드백</strong>
+            <span class="why">압력·산소 농도를 상태로만 들고 있고 화재 거동에 반영하지 않음. Saffire 근거를 붙이기 좋은 다음 후보.</span></li>
+          <li><span class="chip low">LOW</span><strong>열 모델 정교화</strong>
+            <span class="why">현재는 열수지가 아닌 조잡한 대리값.</span></li>
+          <li><span class="chip low">LOW</span><strong>화재 외 사고 유형</strong>
+            <span class="why">감압·전력 상실 등은 미구현. leak은 연결 타입으로만 존재.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ PHASE B ═══════════ -->
+  <section>
+    <h2><span class="num">B</span>제품 계층</h2>
+    <p class="col">
+      사람이 우주선을 만들고 사고를 주입하는 계층. IBM Bob으로 별도 제작된 것을
+      받아 실제 엔진에 연결했습니다.
+    </p>
+
+    <div class="split">
+      <div class="pane">
+        <h3 class="sub-head done">어제 완료</h3>
+        <ul class="items">
+          <li><strong>깨진 가상환경 복구</strong>
+            <span class="why">받은 <code>.venv</code>가 다른 PC의 miniconda 경로를 가리켜 실행 불가 상태. 재생성.</span></li>
+          <li><strong>PhaseASimulatorAdapter</strong>
+            <span class="why">camelCase 스키마 ↔ 엔진 모델, 액션 ID 어휘, 결과 형태를 3중 번역. 프런트엔드 코드는 문구 외 무수정.</span></li>
+          <li><strong>목 → 실엔진 전환</strong>
+            <span class="why">엔진을 못 찾을 때만 목으로 폴백. <code>GET /</code>가 활성 어댑터를 보고.</span></li>
+          <li><strong>Advisor 탭 추가</strong>
+            <span class="why">Phase C 결과 표시. 비교 표는 Phase B 의도대로 권고 없는 상태 유지.</span></li>
+          <li><strong>배포본 정리</strong>
+            <span class="why">298 MB → 0.3 MB. 압축 해제 후 실행까지 검증 완료.</span></li>
+        </ul>
+      </div>
+
+      <div class="pane sunk">
+        <h3 class="sub-head open">남은 작업</h3>
+        <ul class="items open">
+          <li><span class="chip mid">MID</span><strong>분석 요청 비동기화</strong>
+            <span class="why">현재 동기 방식. 시뮬레이션 2.4초 + LLM 7회 호출을 한 요청이 물고 있어 타임아웃 위험. job-id + 폴링으로 전환 필요.</span></li>
+          <li><span class="chip low">LOW</span><strong>폴더명 일관성</strong>
+            <span class="why"><code>Phase b</code>만 대소문자·형식이 <code>phase-c</code>와 다름. 이름 변경 시 launch 설정도 함께 수정 필요.</span></li>
+          <li><span class="chip low">LOW</span><strong>npm 취약점 경고 2건</strong>
+            <span class="why">개발 의존성. 로컬 PoC에는 무해하나 공개 전 점검 권장.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ PHASE C ═══════════ -->
+  <section>
+    <h2><span class="num">C</span>다중 에이전트 의사결정 지원</h2>
+    <p class="col">
+      "그것이 무엇을 의미하는가"에 답하는 계층. 시뮬레이터를 대체하지 않고 해석하며,
+      최종 판단은 사람이 합니다.
+    </p>
+
+    <div class="split">
+      <div class="pane">
+        <h3 class="sub-head done">어제 완료</h3>
+        <ul class="items">
+          <li><strong>계약 기반 어댑터</strong>
+            <span class="why">계약서가 명시한 간극 9개를 전부 폐쇄. 엔진을 import하는 파일이 하나뿐임을 AST 검사로 강제.</span></li>
+          <li><strong>그라운딩 검증기</strong>
+            <span class="why">R1~R8 기계 검사. 에이전트가 말한 모든 숫자를 시뮬레이션 출력과 대조하고, 위반은 고치지 않고 운영자에게 노출.</span></li>
+          <li><strong>의미 이벤트 추출</strong>
+            <span class="why">120 프레임 → 10~30개 이벤트. capability 전환은 프레임에 없어 파생 계산하고 <code>derived</code>로 표시.</span></li>
+          <li><strong>에이전트 7종</strong>
+            <span class="why">Hazard · Crew Safety · Systems · Mission · Evidence · Critic · Coordinator.</span></li>
+          <li><strong>NASA 근거 코퍼스</strong>
+            <span class="why">검증된 6개 출처 9개 청크. 위치 표기 없는 인용은 적재 단계에서 거부.</span></li>
+          <li><strong>Phase B 통합</strong>
+            <span class="why"><code>POST /api/analyze</code>, <code>GET /api/advisor/status</code>, Advisor 탭.</span></li>
+        </ul>
+      </div>
+
+      <div class="pane sunk">
+        <h3 class="sub-head open">남은 작업</h3>
+        <ul class="items open">
+          <li><span class="chip blocked">BLOCKED</span><strong>실제 Granite 검증</strong>
+            <span class="why">WATSONX 키 필요. 프롬프트가 실모델을 만난 적 없음. 스키마 준수 재시도 1회가 부족할 수 있고, 근거 포인터 표기를 모델이 지킬지 미지수.</span></li>
+          <li><span class="chip high">HIGH</span><strong>에이전트 5종 명세 확정</strong>
+            <span class="why">Systems·Mission·Evidence·Critic·Coordinator는 원본 스펙이 11절 중간에서 잘려 제가 제안한 것. 코드에 <code>PROPOSED</code>로 표시됨. 원본이 나오면 <code>role</code>과 <code>project()</code>만 교체.</span></li>
+          <li><span class="chip mid">MID</span><strong>다중 액션 심층 분석</strong>
+            <span class="why">전문 에이전트는 현재 기준 액션 1개만 깊게 봄. 전 액션 분석은 LLM 비용이 배수로 증가.</span></li>
+          <li><span class="chip mid">MID</span><strong>criticality 액션별 산출</strong>
+            <span class="why">현재 기준 액션 하나에 대해서만 leave-one-out 실행.</span></li>
+          <li><span class="chip low">LOW</span><strong>파생 이벤트 정밀화</strong>
+            <span class="why">SMAC 초과 시각을 요약이 주지 않아 연기 도달 시점에 앵커링. 표시는 해두었으나 개선 여지.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 다음 단계 ═══════════ -->
+  <section>
+    <h2><span class="num">→</span>권장 진행 순서</h2>
+    <p class="col">
+      의존 관계를 고려한 순서입니다. 1번이 나머지 여러 항목의 판단 근거가 되므로
+      가장 먼저 처리하는 것이 좋습니다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>순서</th><th>할 일</th><th>페이즈</th><th>왜 이 순서인가</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="step">1</td>
+            <td>WATSONX 키 설정 후 <code>doctor --live</code></td>
+            <td>C</td>
+            <td>Advisor가 실제로 동작하는지 확인하는 유일한 방법. 이후 모든 프롬프트 작업의 전제.</td>
+          </tr>
+          <tr>
+            <td class="step">2</td>
+            <td>CLI로 첫 분석 실행, 위반 목록 확인</td>
+            <td>C</td>
+            <td>브라우저보다 출력이 다 보여 프롬프트 문제를 찾기 쉬움. 위반이 많으면 프롬프트 조정.</td>
+          </tr>
+          <tr>
+            <td class="step">3</td>
+            <td>에이전트 5종 명세 확정</td>
+            <td>C</td>
+            <td>원본 요구사항이 있으면 지금 교체하는 편이 나중보다 저렴.</td>
+          </tr>
+          <tr>
+            <td class="step">4</td>
+            <td>몬테카를로 capability 하드코딩 수정</td>
+            <td>A</td>
+            <td>데모 시나리오에서는 드러나지 않지만, 팀원이 새 시나리오를 만들면 바로 문제가 됨.</td>
+          </tr>
+          <tr>
+            <td class="step">5</td>
+            <td>분석 요청 비동기화</td>
+            <td>B</td>
+            <td>1~2번에서 실제 응답 시간을 측정한 뒤에 결정하는 것이 합리적.</td>
+          </tr>
+          <tr>
+            <td class="step">6</td>
+            <td>화학종 수율 등 데이터 공백 조사</td>
+            <td>A</td>
+            <td>시연에는 영향이 없고, 모델 신뢰도를 높이는 장기 과제.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">시연 관점에서</div>
+      <p>
+        1~2번만 끝내면 <strong>전 구간 시연이 가능합니다.</strong> 우주선 구축 → 사고 주입
+        → 실단위 시뮬레이션 → 조치 비교 → 다중 에이전트 분석 → 권고까지 이어지고,
+        나머지 항목은 모두 품질·견고성 개선이지 기능 공백이 아닙니다.
+      </p>
+    </div>
+
+    <hr class="rule">
+    <p class="col footnote">
+      상세 근거는 각 페이즈의 README와 <code>phase-a-contract.md</code>(통합 계약),
+      <code>phase-c-plan.md</code>(설계), <code>docs/nasa-calibration-report.html</code>
+      (NASA 자료 조사)에 있습니다. <code>phase-a-plan.md</code>는 폐기된 문서입니다.
+    </p>
+  </section>
+
+</div>

@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* ─── Mission-control dark theme CSS variables ────────────────────────────── */
+:root {
+  --bg-base: #0a0c10;
+  --bg-surface: #111318;
+  --bg-elevated: #1a1d24;
+  --bg-card: #1e2128;
+  --border: #2a2d36;
+  --border-subtle: #1e2028;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #3b82f6;
+  --accent-blue-dim: #1d4ed8;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-green: #22c55e;
+  --accent-cyan: #06b6d4;
+  --accent-purple: #a855f7;
+  --hazard-none: #22c55e;
+  --hazard-low: #84cc16;
+  --hazard-medium: #f59e0b;
+  --hazard-high: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ─── React Flow overrides ────────────────────────────────────────────────── */
+.react-flow__background {
+  background-color: var(--bg-base) !important;
+}
+
+.react-flow__minimap {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(59, 130, 246, 0.15) !important;
+}
+
+.react-flow__controls {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: var(--bg-elevated) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--bg-card) !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent-blue);
+}
+
+.react-flow__handle {
+  background: var(--accent-blue) !important;
+  border: 2px solid var(--bg-base) !important;
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.react-flow__handle:hover {
+  background: var(--accent-cyan) !important;
+}
+
+.react-flow__connection-path {
+  stroke: var(--accent-cyan) !important;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}
+
+/* ─── Scrollbars ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ─── Utilities ────────────────────────────────────────────────────────────── */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,29 @@
+[project]
+name = "phase-c"
+version = "0.1.0"
+description = "Phase C — multi-agent decision support over the Phase A spacecraft simulator"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+granite = ["ibm-watsonx-ai>=1.1"]
+
+[project.scripts]
+phase-c = "phase_c.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"phase_c.rag" = ["corpus/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

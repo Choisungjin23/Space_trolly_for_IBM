@@ -1,0 +1,2478 @@
+{
+  "scenario_digest": "0f8c3c3d62e1",
+  "mission_phase": "cruise",
+  "capability_names": [
+    "HABITATION",
+    "RETURN"
+  ],
+  "criticality": [
+    {
+      "crew_id": "C2",
+      "role": "engineer",
+      "measured_score": 0.5,
+      "assumed_weight": 2.7
+    },
+    {
+      "crew_id": "C4",
+      "role": "pilot",
+      "measured_score": 0.25,
+      "assumed_weight": 1.3
+    },
+    {
+      "crew_id": "C1",
+      "role": "commander",
+      "measured_score": 0.0,
+      "assumed_weight": 0.9
+    },
+    {
+      "crew_id": "C3",
+      "role": "medic",
+      "measured_score": 0.0,
+      "assumed_weight": 0.6
+    }
+  ],
+  "criticality_baseline_action": "do_nothing",
+  "actions": [
+    {
+      "action": {
+        "id": "do_nothing",
+        "kind": "do_nothing",
+        "label": "Do nothing",
+        "description": "Baseline: take no action.",
+        "params": {}
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.13443,
+          "M2": 1.32996,
+          "M3": 0.60899,
+          "M4": 0.07473,
+          "M5": 0.00765
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0897,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0897,
+          "module": "M1"
+        },
+        "C3": {
+          "state": "EVACUATED",
+          "exposure_seconds": 150.0,
+          "smac_dose_fraction": 0.3703,
+          "module": "M4"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0437,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 3,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 1,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "EXPOSED_AT_RISK",
+        "power": "EXPOSED_AT_RISK",
+        "propulsion": "OPERATIONAL",
+        "gnc": "EXPOSED_AT_RISK"
+      },
+      "system_reasons": {
+        "life_support": "smoke_or_fire_in_module",
+        "power": "smoke_or_fire_in_module",
+        "gnc": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AT_RISK"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 900.0,
+          "type": "capability_change",
+          "subject": "HABITATION",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 900.0,
+          "type": "hazard_arrival",
+          "subject": "M3",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "system_state_change",
+          "subject": "life_support",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "hazard_arrival",
+          "subject": "M1",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "system_state_change",
+          "subject": "gnc",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "hazard_arrival",
+          "subject": "M4",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "system_state_change",
+          "subject": "power",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 3270.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "SAFE",
+          "to_state": "EXPOSED",
+          "source": "timeline"
+        },
+        {
+          "t": 3330.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EXPOSED",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_module_change",
+          "subject": "C3",
+          "from_state": "M3",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 18,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 168.0,
+          "peak_smac_dose": 0.3761
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "close_hatch:c_m1_m2",
+        "kind": "close_hatch",
+        "label": "Close hatch M1-M2",
+        "description": "Close hatch connection c_m1_m2 (M1-M2).",
+        "params": {
+          "connection_id": "c_m1_m2"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "smac_exceeded_modules": [
+          "M2",
+          "M3"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.00528,
+          "M2": 1.52296,
+          "M3": 0.68461,
+          "M4": 0.06879,
+          "M5": 0.00699
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.003,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.003,
+          "module": "M1"
+        },
+        "C3": {
+          "state": "EVACUATED",
+          "exposure_seconds": 150.0,
+          "smac_dose_fraction": 0.3421,
+          "module": "M4"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0399,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 3,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 1,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "EXPOSED_AT_RISK",
+        "power": "EXPOSED_AT_RISK",
+        "propulsion": "OPERATIONAL",
+        "gnc": "OPERATIONAL"
+      },
+      "system_reasons": {
+        "life_support": "smoke_or_fire_in_module",
+        "power": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AT_RISK"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 870.0,
+          "type": "capability_change",
+          "subject": "HABITATION",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 870.0,
+          "type": "hazard_arrival",
+          "subject": "M3",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 870.0,
+          "type": "smac_exceeded",
+          "subject": "M3",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 870.0,
+          "type": "system_state_change",
+          "subject": "life_support",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 2760.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 2760.0,
+          "type": "hazard_arrival",
+          "subject": "M4",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 2760.0,
+          "type": "system_state_change",
+          "subject": "power",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 3090.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "SAFE",
+          "to_state": "EXPOSED",
+          "source": "timeline"
+        },
+        {
+          "t": 3150.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EXPOSED",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 3210.0,
+          "type": "crew_module_change",
+          "subject": "C3",
+          "from_state": "M3",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 3210.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 20,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 175.5,
+          "peak_smac_dose": 0.3526
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "shutdown_ventilation:c_m2_m3",
+        "kind": "shutdown_ventilation",
+        "label": "Shut down ventilation M2-M3",
+        "description": "Stop IMV airflow on c_m2_m3 (M2-M3); duct stays open.",
+        "params": {
+          "connection_id": "c_m2_m3"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M1",
+          "M2"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.13006,
+          "M2": 1.32958,
+          "M3": 0.00321,
+          "M4": 0.01293,
+          "M5": 0.00132
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0876,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0876,
+          "module": "M1"
+        },
+        "C3": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0047,
+          "module": "M3"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0076,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 4,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 0,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "OPERATIONAL",
+        "power": "OPERATIONAL",
+        "propulsion": "OPERATIONAL",
+        "gnc": "EXPOSED_AT_RISK"
+      },
+      "system_reasons": {
+        "gnc": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AVAILABLE"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "hazard_arrival",
+          "subject": "M1",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "system_state_change",
+          "subject": "gnc",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 20,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 0.0,
+          "peak_smac_dose": 0.0873
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "close_imv:c_m2_m3",
+        "kind": "close_imv",
+        "label": "Close IMV duct M2-M3",
+        "description": "Physically close IMV duct c_m2_m3 (M2-M3).",
+        "params": {
+          "connection_id": "c_m2_m3"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M1",
+          "M2"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.13006,
+          "M2": 1.32958,
+          "M3": 0.00321,
+          "M4": 0.01293,
+          "M5": 0.00132
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0876,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0876,
+          "module": "M1"
+        },
+        "C3": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0047,
+          "module": "M3"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0076,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 4,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 0,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "OPERATIONAL",
+        "power": "OPERATIONAL",
+        "propulsion": "OPERATIONAL",
+        "gnc": "EXPOSED_AT_RISK"
+      },
+      "system_reasons": {
+        "gnc": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AVAILABLE"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "hazard_arrival",
+          "subject": "M1",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "system_state_change",
+          "subject": "gnc",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 20,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 0.0,
+          "peak_smac_dose": 0.0873
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "isolate:M2",
+        "kind": "isolate",
+        "label": "Isolate Storage (M2)",
+        "description": "Seal M2: close every connection and stop its ventilation. Crew inside can no longer leave.",
+        "params": {
+          "module_id": "M2"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M2"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.00047,
+          "M2": 1.52296,
+          "M3": 0.00321,
+          "M4": 0.00043,
+          "M5": 0.0001
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0007,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0007,
+          "module": "M1"
+        },
+        "C3": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0043,
+          "module": "M3"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0007,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 4,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 0,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "OPERATIONAL",
+        "power": "OPERATIONAL",
+        "propulsion": "OPERATIONAL",
+        "gnc": "OPERATIONAL"
+      },
+      "system_reasons": {},
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AVAILABLE",
+        "HABITATION": "AVAILABLE"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 20,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 20,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 0.0,
+          "peak_smac_dose": 0.0084
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "station_repairer:C2:M3",
+        "kind": "station_repairer",
+        "label": "Station C2 in Life Support (M3)",
+        "description": "Move Engineer Okafor (C2) to M3 so damaged equipment there can be repaired on site.",
+        "params": {
+          "crew_id": "C2",
+          "target_module": "M3"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.13443,
+          "M2": 1.32996,
+          "M3": 0.60899,
+          "M4": 0.07473,
+          "M5": 0.00765
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0897,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "EVACUATED",
+          "exposure_seconds": 120.0,
+          "smac_dose_fraction": 0.0378,
+          "module": "M4"
+        },
+        "C3": {
+          "state": "EVACUATED",
+          "exposure_seconds": 150.0,
+          "smac_dose_fraction": 0.3703,
+          "module": "M4"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0437,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 2,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 2,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "EXPOSED_AT_RISK",
+        "power": "EXPOSED_AT_RISK",
+        "propulsion": "OPERATIONAL",
+        "gnc": "EXPOSED_AT_RISK"
+      },
+      "system_reasons": {
+        "life_support": "smoke_or_fire_in_module",
+        "power": "smoke_or_fire_in_module",
+        "gnc": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AT_RISK"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 300.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "SAFE",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 330.0,
+          "type": "crew_module_change",
+          "subject": "C2",
+          "from_state": "M1",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 390.0,
+          "type": "crew_module_change",
+          "subject": "C2",
+          "from_state": "M4",
+          "to_state": "M3",
+          "source": "timeline"
+        },
+        {
+          "t": 390.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "capability_change",
+          "subject": "HABITATION",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 900.0,
+          "type": "hazard_arrival",
+          "subject": "M3",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "system_state_change",
+          "subject": "life_support",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "hazard_arrival",
+          "subject": "M1",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "system_state_change",
+          "subject": "gnc",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "hazard_arrival",
+          "subject": "M4",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "system_state_change",
+          "subject": "power",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 3270.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "EVACUATED",
+          "to_state": "EXPOSED",
+          "source": "timeline"
+        },
+        {
+          "t": 3270.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "SAFE",
+          "to_state": "EXPOSED",
+          "source": "timeline"
+        },
+        {
+          "t": 3330.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "EXPOSED",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 3330.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EXPOSED",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_module_change",
+          "subject": "C2",
+          "from_state": "M3",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_module_change",
+          "subject": "C3",
+          "from_state": "M3",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 18,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 306.0,
+          "peak_smac_dose": 0.3761
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "station_repairer:C2:M4",
+        "kind": "station_repairer",
+        "label": "Station C2 in Power (M4)",
+        "description": "Move Engineer Okafor (C2) to M4 so damaged equipment there can be repaired on site.",
+        "params": {
+          "crew_id": "C2",
+          "target_module": "M4"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.13443,
+          "M2": 1.32996,
+          "M3": 0.60899,
+          "M4": 0.07473,
+          "M5": 0.00765
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0897,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "EVACUATED",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0,
+          "module": "M4"
+        },
+        "C3": {
+          "state": "EVACUATED",
+          "exposure_seconds": 150.0,
+          "smac_dose_fraction": 0.3703,
+          "module": "M4"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0437,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 2,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 2,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "EXPOSED_AT_RISK",
+        "power": "EXPOSED_AT_RISK",
+        "propulsion": "OPERATIONAL",
+        "gnc": "EXPOSED_AT_RISK"
+      },
+      "system_reasons": {
+        "life_support": "smoke_or_fire_in_module",
+        "power": "smoke_or_fire_in_module",
+        "gnc": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AT_RISK"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 300.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "SAFE",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 330.0,
+          "type": "crew_module_change",
+          "subject": "C2",
+          "from_state": "M1",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 330.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "capability_change",
+          "subject": "HABITATION",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 900.0,
+          "type": "hazard_arrival",
+          "subject": "M3",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "system_state_change",
+          "subject": "life_support",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "hazard_arrival",
+          "subject": "M1",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "system_state_change",
+          "subject": "gnc",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "hazard_arrival",
+          "subject": "M4",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "system_state_change",
+          "subject": "power",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 3270.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "SAFE",
+          "to_state": "EXPOSED",
+          "source": "timeline"
+        },
+        {
+          "t": 3330.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EXPOSED",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_module_change",
+          "subject": "C3",
+          "from_state": "M3",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 18,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 168.0,
+          "peak_smac_dose": 0.3761
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    },
+    {
+      "action": {
+        "id": "station_repairer:C2:M5",
+        "kind": "station_repairer",
+        "label": "Station C2 in Propulsion (M5)",
+        "description": "Move Engineer Okafor (C2) to M5 so damaged equipment there can be repaired on site.",
+        "params": {
+          "crew_id": "C2",
+          "target_module": "M5"
+        }
+      },
+      "detection": {
+        "status": "DETECTED",
+        "detected_at_seconds": 270.0
+      },
+      "hazard": {
+        "reached_modules": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "smac_exceeded_modules": [
+          "M2"
+        ],
+        "peak_extinction_per_m": {
+          "M1": 0.13443,
+          "M2": 1.32996,
+          "M3": 0.60899,
+          "M4": 0.07473,
+          "M5": 0.00765
+        }
+      },
+      "crew": {
+        "C1": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0897,
+          "module": "M1"
+        },
+        "C2": {
+          "state": "EVACUATED",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0,
+          "module": "M5"
+        },
+        "C3": {
+          "state": "EVACUATED",
+          "exposure_seconds": 150.0,
+          "smac_dose_fraction": 0.3703,
+          "module": "M4"
+        },
+        "C4": {
+          "state": "SAFE",
+          "exposure_seconds": 0.0,
+          "smac_dose_fraction": 0.0437,
+          "module": "M4"
+        }
+      },
+      "crew_counts": {
+        "SAFE": 2,
+        "EXPOSED": 0,
+        "EVACUATING": 0,
+        "EVACUATED": 2,
+        "TRAPPED": 0
+      },
+      "systems": {
+        "life_support": "EXPOSED_AT_RISK",
+        "power": "EXPOSED_AT_RISK",
+        "propulsion": "OPERATIONAL",
+        "gnc": "EXPOSED_AT_RISK"
+      },
+      "system_reasons": {
+        "life_support": "smoke_or_fire_in_module",
+        "power": "smoke_or_fire_in_module",
+        "gnc": "smoke_or_fire_in_module"
+      },
+      "equipment": {
+        "eq_gnc": {
+          "name": "GNC computer",
+          "module": "M1",
+          "system": "gnc",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_ls": {
+          "name": "Life support rack",
+          "module": "M3",
+          "system": "life_support",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_pwr": {
+          "name": "Main power bus",
+          "module": "M4",
+          "system": "power",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        },
+        "eq_prop": {
+          "name": "Main engine controller",
+          "module": "M5",
+          "system": "propulsion",
+          "powered": true,
+          "damaged": false,
+          "repair_progress_seconds": 0.0
+        }
+      },
+      "capabilities": {
+        "RETURN": "AT_RISK",
+        "HABITATION": "AT_RISK"
+      },
+      "critical_functions": [
+        {
+          "function": "command_decision",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C1"
+          ]
+        },
+        {
+          "function": "life_support_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "medical",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C3"
+          ]
+        },
+        {
+          "function": "navigation",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "power_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        },
+        {
+          "function": "propulsion_ops",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C4"
+          ]
+        },
+        {
+          "function": "repair",
+          "flag": "SINGLE_PROVIDER",
+          "providers": [
+            "C2"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "t": 270.0,
+          "type": "detection_confirmed",
+          "subject": "spacecraft",
+          "from_state": null,
+          "to_state": "DETECTED",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "hazard_arrival",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 270.0,
+          "type": "smac_exceeded",
+          "subject": "M2",
+          "from_state": null,
+          "to_state": "ABOVE_1H_SMAC",
+          "source": "derived"
+        },
+        {
+          "t": 300.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "SAFE",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 330.0,
+          "type": "crew_module_change",
+          "subject": "C2",
+          "from_state": "M1",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 390.0,
+          "type": "crew_module_change",
+          "subject": "C2",
+          "from_state": "M4",
+          "to_state": "M5",
+          "source": "timeline"
+        },
+        {
+          "t": 390.0,
+          "type": "crew_state_change",
+          "subject": "C2",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "capability_change",
+          "subject": "HABITATION",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 900.0,
+          "type": "hazard_arrival",
+          "subject": "M3",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 900.0,
+          "type": "system_state_change",
+          "subject": "life_support",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "capability_change",
+          "subject": "RETURN",
+          "from_state": "AVAILABLE",
+          "to_state": "AT_RISK",
+          "source": "derived"
+        },
+        {
+          "t": 1950.0,
+          "type": "hazard_arrival",
+          "subject": "M1",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 1950.0,
+          "type": "system_state_change",
+          "subject": "gnc",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "hazard_arrival",
+          "subject": "M4",
+          "from_state": null,
+          "to_state": "SMOKE_AT_ALARM_LEVEL",
+          "source": "timeline"
+        },
+        {
+          "t": 2670.0,
+          "type": "system_state_change",
+          "subject": "power",
+          "from_state": "OPERATIONAL",
+          "to_state": "EXPOSED_AT_RISK",
+          "source": "timeline"
+        },
+        {
+          "t": 3270.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "SAFE",
+          "to_state": "EXPOSED",
+          "source": "timeline"
+        },
+        {
+          "t": 3330.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EXPOSED",
+          "to_state": "EVACUATING",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_module_change",
+          "subject": "C3",
+          "from_state": "M3",
+          "to_state": "M4",
+          "source": "timeline"
+        },
+        {
+          "t": 3390.0,
+          "type": "crew_state_change",
+          "subject": "C3",
+          "from_state": "EVACUATING",
+          "to_state": "EVACUATED",
+          "source": "timeline"
+        }
+      ],
+      "sampled": {
+        "samples": 20,
+        "counts": {
+          "hazard_contained_to_sources": 0,
+          "no_crew_trapped": 20,
+          "all_crew_safe_or_evacuated": 18,
+          "no_crew_reached_smac_dose": 20,
+          "retained_evacuation_and_return": 20
+        },
+        "capability_counts": {
+          "RETURN": {
+            "available": 20,
+            "applicable": true
+          },
+          "HABITATION": {
+            "available": 20,
+            "applicable": true
+          }
+        },
+        "means": {
+          "total_exposure_seconds": 168.0,
+          "peak_smac_dose": 0.3761
+        },
+        "notes": [
+          "Counts over sampled scenario assumptions; the Monte Carlo repetition does not validate real-world probabilities."
+        ]
+      },
+      "provenance": {
+        "engine": "spacecraft_sim 0.2.0",
+        "horizon_seconds": 3600.0,
+        "dt_seconds": 30.0,
+        "seed": 42,
+        "ethics_notice": "Mixed provenance: constants named VERIFIED_* come from NASA primary sources (see config.SOURCES); constants named ASSUMED_* are PoC assumptions and are not validated. Crew criticality is a FMECA-style function model, not a valuation of lives and not a real mission decision norm.",
+        "downsampled": false
+      }
+    }
+  ]
+}
