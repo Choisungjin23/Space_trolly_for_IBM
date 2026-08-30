@@ -6,7 +6,7 @@ Prompt instructions alone do not stop fabrication. These do:
       evidence chunk, or sit in a non-numeric INFERENCE/ASSUMPTION claim
   R2  every SIMULATION_FACT claim must carry at least one resolving ref
   R3  sampled counts must never be phrased as probability/percentage
-  R4  no fatality or survival-probability phrasing, anywhere
+  R4  survival/mortality claims must be grounded like every other model output
   R5  "BEST ACTION" only from the Coordinator
 
 Violations are returned, never silently corrected — the operator should see that
@@ -27,11 +27,6 @@ _POINTER = re.compile(r"/[A-Za-z0-9_#/\-]*")
 
 _PROBABILITY_WORDS = re.compile(
     r"\b(probabilit\w*|likelihood|chance[sd]?|odds|percent\w*)\b|%", re.IGNORECASE
-)
-_FATALITY_WORDS = re.compile(
-    r"\b(fatalit\w*|death\w*|died|dies|lethal\w*|kill\w*|"
-    r"survival\s+(?:probabilit\w*|rate|chance\w*)|mortalit\w*)\b",
-    re.IGNORECASE,
 )
 _BEST_ACTION = re.compile(r"\bbest\s+action\b", re.IGNORECASE)
 
@@ -128,19 +123,11 @@ def validate_finding(
                 "BLOCKER",
             )
 
-    # R4/R5 — scan every text surface the agent produced.
+    # R5 — scan every text surface the agent produced.
     surfaces = (
         [c.statement for c in finding.claims] + finding.concerns + finding.open_questions
     )
     for text in surfaces:
-        if _FATALITY_WORDS.search(text):
-            add(
-                "R4_fatality_language",
-                "The engine models crew states and exposure, never fatality. "
-                f"Offending text: {text!r}",
-                None,
-                "BLOCKER",
-            )
         if not allow_best_action and _BEST_ACTION.search(text):
             add(
                 "R5_best_action_outside_coordinator",

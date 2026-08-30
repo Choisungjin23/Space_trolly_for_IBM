@@ -22,7 +22,7 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
       {/* Connection ID (read-only) */}
       <div>
         <label style={labelStyle}>Connection ID</label>
-        <div style={{ color: '#475569', fontSize: 11, fontFamily: 'monospace', padding: '3px 0' }}>
+        <div style={{ color: 'var(--ink-4)', fontSize: 11, fontFamily: 'monospace', padding: '3px 0' }}>
           {connection.id}
         </div>
       </div>
@@ -32,11 +32,11 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
         <label style={labelStyle}>Pathway</label>
         <div
           style={{
-            background: '#111318',
-            border: '1px solid #2a2d36',
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
             borderRadius: 5,
             padding: '6px 10px',
-            color: '#e2e8f0',
+            color: 'var(--ink)',
             fontSize: 12,
             display: 'flex',
             alignItems: 'center',
@@ -44,7 +44,7 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
           }}
         >
           <span>{sourceModuleName}</span>
-          <span style={{ color: '#64748b' }}>↔</span>
+          <span style={{ color: 'var(--ink-3)' }}>↔</span>
           <span>{targetModuleName}</span>
         </div>
       </div>
@@ -70,14 +70,14 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
         <select
           style={{
             ...inputStyle,
-            color: connection.state === 'open' ? '#22c55e' : connection.state === 'closed' ? '#ef4444' : '#f59e0b',
+            color: connection.state === 'open' ? 'var(--good)' : connection.state === 'closed' ? 'var(--ember)' : 'var(--amber)',
           }}
           value={connection.state}
           onChange={(e) => updateConnection(connection.id, { state: e.target.value as ConnectionState })}
         >
-          <option value="open" style={{ color: '#22c55e' }}>Open</option>
-          <option value="closed" style={{ color: '#ef4444' }}>Closed</option>
-          <option value="unknown" style={{ color: '#f59e0b' }}>Unknown</option>
+          <option value="open" style={{ color: 'var(--good)' }}>Open</option>
+          <option value="closed" style={{ color: 'var(--ember)' }}>Closed</option>
+          <option value="unknown" style={{ color: 'var(--amber)' }}>Unknown</option>
         </select>
       </div>
 
@@ -91,9 +91,9 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
             }
             disabled={connection.type !== 'imv'}
             style={{
-              background: connection.ventilationOn ? '#164e63' : '#1e2128',
-              color: connection.ventilationOn ? '#67e8f9' : '#475569',
-              border: `1px solid ${connection.ventilationOn ? '#06b6d4' : '#2a2d36'}`,
+              background: connection.ventilationOn ? 'var(--verified-wash)' : 'var(--surface-3)',
+              color: connection.ventilationOn ? 'var(--verified)' : 'var(--ink-4)',
+              border: `1px solid ${connection.ventilationOn ? 'var(--verified)' : 'var(--line)'}`,
               borderRadius: 5,
               padding: '4px 12px',
               fontSize: 12,
@@ -101,12 +101,92 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
               opacity: connection.type !== 'imv' ? 0.4 : 1,
             }}
           >
-            {connection.ventilationOn ? '↻ ON' : 'OFF'}
+            {connection.ventilationOn ? 'FLOW ON' : 'FLOW OFF'}
           </button>
           {connection.type !== 'imv' && (
-            <span style={{ color: '#475569', fontSize: 11 }}>IMV only</span>
+            <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>IMV only</span>
           )}
         </div>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Hatch Utility Lines</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          {([
+            ['powerLineOn', 'POWER', '#facc15'],
+            ['airLineOn', 'AIR', '#7dd3fc'],
+            ['waterLineOn', 'WATER', '#2563eb'],
+          ] as const).map(([field, label, color]) => {
+            const enabled = connection[field]
+            return (
+              <button
+                key={field}
+                type="button"
+                disabled={connection.type !== 'hatch'}
+                onClick={() => updateConnection(connection.id, { [field]: !enabled })}
+                style={{
+                  background: enabled ? `${color}22` : 'var(--surface-3)',
+                  color: enabled ? color : 'var(--ink-4)',
+                  border: `1px solid ${enabled ? color : 'var(--line)'}`,
+                  borderRadius: 4,
+                  padding: '5px 3px',
+                  fontSize: 9,
+                  cursor: connection.type === 'hatch' ? 'pointer' : 'not-allowed',
+                  opacity: connection.type === 'hatch' ? 1 : 0.4,
+                }}
+              >
+                {label} {enabled ? 'ON' : 'OFF'}
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ color: 'var(--ink-4)', fontSize: 10, marginTop: 5 }}>
+          Closing the hatch blocks air only. Power and water use independent switches.
+        </div>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Connectivity / inverse resistance</label>
+        <input
+          aria-label="Current connectivity"
+          style={inputStyle}
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          disabled={connection.type !== 'hatch'}
+          value={connection.connectivity}
+          onChange={(e) => updateConnection(connection.id, {
+            connectivity: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+          })}
+        />
+        <div style={{ color: 'var(--ink-4)', fontSize: 10, marginTop: 5, lineHeight: 1.5 }}>
+          {connection.type === 'hatch'
+            ? `${(4 * connection.connectivity / 100).toFixed(2)} crew/min · ${(10 * connection.connectivity / 100).toFixed(1)}% air/min · baseline ${connection.baseConnectivity}`
+            : 'Hatch connections only'}
+        </div>
+        {connection.type === 'hatch' && (
+          <div style={{ color: connection.connectivity < 50 ? 'var(--ember)' : 'var(--ink-4)', fontSize: 10, marginTop: 4 }}>
+            Air-coupled negative feedback {connection.connectivity < connection.baseConnectivity ? 'ACTIVE' : 'nominal'}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label style={labelStyle}>Power Passage (%)</label>
+        <input
+          aria-label="Power passage percent"
+          style={inputStyle}
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          disabled={connection.type !== 'hatch'}
+          value={Math.round(connection.powerTransferFactor * 100)}
+          onChange={(event) => updateConnection(connection.id, {
+            powerTransferFactor: Math.max(0, Math.min(1, (Number(event.target.value) || 0) / 100)),
+          })}
+        />
       </div>
 
       {/* Flow direction */}
@@ -139,7 +219,7 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
           <option value="none">None</option>
           <option value="unknown">Unknown</option>
         </select>
-        <div style={{ color: '#475569', fontSize: 11, marginTop: 4 }}>
+        <div style={{ color: 'var(--ink-4)', fontSize: 11, marginTop: 4 }}>
           Numerical interpretation handled by Phase A simulator
         </div>
       </div>
@@ -149,7 +229,7 @@ export default function ConnectionInspector({ connection, sourceModuleName, targ
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  color: '#64748b',
+  color: 'var(--ink-3)',
   fontSize: 11,
   marginBottom: 4,
   letterSpacing: '0.04em',
@@ -157,10 +237,10 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0a0c10',
-  border: '1px solid #2a2d36',
+  background: 'var(--void)',
+  border: '1px solid var(--line)',
   borderRadius: 4,
-  color: '#e2e8f0',
+  color: 'var(--ink)',
   fontSize: 12,
   padding: '5px 8px',
   outline: 'none',

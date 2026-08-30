@@ -47,23 +47,42 @@ class FactRegistry:
         }
 
     @classmethod
-    def from_action(cls, analysis: ActionAnalysis) -> "FactRegistry":
+    def from_payload(cls, payload: dict) -> "FactRegistry":
+        """The registry for exactly what one agent was shown.
+
+        Agents are told to cite JSON pointers "into the DATA", and each agent
+        sees its own projection - the mission agent's data has
+        `/sampled_capability_counts`, the systems agent's has `/equipment`, and
+        neither shape matches the raw action or the whole case. Validating a
+        citation against any tree other than the one the agent read rejects
+        correct work: every ref fails, and the honest ones are lost among them.
+        """
         facts: dict[str, Any] = {}
-        _walk(analysis.model_dump(mode="json"), "", facts)
+        _walk(payload, "", facts)
         return cls(facts)
 
     @classmethod
+    def from_action(cls, analysis: ActionAnalysis) -> "FactRegistry":
+        return cls.from_payload(analysis.model_dump(mode="json"))
+
+    @classmethod
     def from_case(cls, case: CaseAnalysis) -> "FactRegistry":
-        facts: dict[str, Any] = {}
-        _walk(case.model_dump(mode="json"), "", facts)
-        return cls(facts)
+        return cls.from_payload(case.model_dump(mode="json"))
 
     def resolves(self, pointer: str) -> bool:
         if pointer in self.facts:
             return True
-        # A pointer to a container resolves if anything sits beneath it.
-        prefix = pointer.rstrip("/") + "/"
-        return any(key.startswith(prefix) for key in self.facts)
+        stem = pointer.rstrip("/")
+        # A pointer to a container resolves if anything sits beneath it, or if
+        # the registry holds a structural fact about it (`#count`, `#sum`...).
+        # The second case is what makes an EMPTY container citable: "no systems
+        # are declared" is a true statement about the data, and the registry
+        # does know it - `/systems#count` is 0. Requiring a child would reject
+        # exactly the claims that report an absence.
+        return any(
+            key.startswith(stem + "/") or key.startswith(stem + "#")
+            for key in self.facts
+        )
 
     def supports_number(self, value: float, *, rel_tol: float = 1e-6) -> bool:
         """True when the registry holds this number, allowing for the rounding

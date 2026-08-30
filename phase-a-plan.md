@@ -1,5 +1,10 @@
 # Phase A Implementation Plan — Graph-Based Stochastic Spacecraft Simulator (PoC)
 
+> Historical plan note: the implemented engine has since replaced the generic
+> fire-severity fatality coin flip described in the original draft with an
+> explicit ASSUMED oxygen/contaminant survival-and-return model. Its top-level
+> allocation objective is expected surviving returnees; see `spacecraft-sim/README.md`.
+
 **Project:** IBM AI Builders Challenge — AI-assisted spacecraft emergency decision support
 **Phase A scope:** No AI. Only the simulation pipeline:
 `current state → emergency action → stochastic future simulation → outcome comparison`
@@ -120,9 +125,11 @@ Each Monte Carlo run simulates `SIM_STEPS` (default 10) discrete time steps. Per
 2. **Fire growth.** Every burning module: `fire_severity = min(1.0, fire_severity + GROWTH_RATE)` (default +0.1/step).
 3. **Fire burnout/suppression (optional, keeps runs from being deterministic doom).** With probability `EXTINGUISH_PROB` (default 0.05) per burning module per step, severity drops by `EXTINGUISH_AMOUNT` (default 0.2, floor 0).
 4. **System damage.** A module with `fire_severity ≥ SYSTEM_DAMAGE_THRESHOLD` (default 0.8) has probability `SYSTEM_FAILURE_PROB` (default 0.5) per step of destroying its systems (marked failed for the run).
-5. **Crew hazard.** Each crew member in a module with `fire_severity ≥ CREW_HAZARD_THRESHOLD` (default 0.5):
-   - If the module is not isolated and has an active connection to a non-burning, non-isolated module, they **evacuate** there (deterministic, first eligible neighbor).
-   - Otherwise they suffer `P(fatality) = fire_severity × CREW_FATALITY_FACTOR` (default factor 0.3) that step.
+5. **Crew hazard (superseded implementation).** Crew evacuate through available
+   hatches, accumulate contaminant exposure, and receive an explicit ASSUMED
+   survival/return estimate from oxygen and dose. An explicit abandonment action
+   may isolate occupants when that produces the largest expected surviving-returnee
+   outcome under constrained resources.
 
 All names in CAPS are constants in `config.py`. The docstring at the top of `propagation.py` and the README both state plainly: *this is a simplified, configurable PoC model chosen for demonstrable behavior, not a physically validated NASA fire model.*
 

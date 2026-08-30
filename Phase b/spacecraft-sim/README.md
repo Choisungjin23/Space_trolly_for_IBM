@@ -18,6 +18,15 @@ An interactive local web application for building spacecraft topologies, injecti
 4. **Analyze** — one button serializes the scenario and sends it to the simulator interface
 5. **Compare** returned action outcomes side-by-side, revealing trade-offs
 6. **Inspect** an example sampled trajectory on the Timeline tab
+7. **Allocate resources** — configure power, clean-air and regenerative-water
+   sources, per-module demand, stored water, and independent hatch utility lines
+8. **Compare survival** — inspect modeled survival and return estimates for each
+   candidate action, including explicit isolation/abandonment alternatives
+9. **Auto-size source defaults** — selected crew, equipment watt loads, enabled
+   life-support outputs and multi-hop losses set safe initial source capacities;
+   the operator can still lower them to model scarcity
+10. **Watch resource flow** — animated yellow, sky-blue and blue Deck Plan lines
+    show the calculated power, air and water direction
 
 ```
 Build spacecraft → Configure → Inject emergency
@@ -65,7 +74,7 @@ spacecraft-sim/
 │   │   └── fixtures/
 │   │       └── five_module_demo.json
 │   └── tests/
-│       └── test_phase_b.py          # 34 backend tests
+│       └── test_phase_b.py          # backend API and adapter tests
 └── frontend/
     ├── src/
     │   ├── types/
@@ -90,16 +99,81 @@ spacecraft-sim/
 
 ## How to Run
 
+### macOS quick start
+
+Install Python 3.11+ and Node.js 18+, then run from the repository root:
+
+```bash
+chmod +x run-app.sh
+./run-app.sh
+```
+
+The launcher creates a macOS-only `.venv-macos` (so a shared Windows `.venv`
+is untouched), installs the native dependencies for Apple Silicon or Intel,
+starts the backend and frontend, and opens `http://localhost:5173`. Press
+`Control-C` in Terminal to stop both servers. Optional commands:
+
+```bash
+./run-app.sh --no-browser  # start without opening a browser
+./run-app.sh --setup-only  # install/check dependencies without starting
+```
+
+In the architecture view, select a hatch to edit its current connectivity and
+see the derived crew/min and air %/min limits. `Other Disaster Disruption` on a
+module lets a future non-fire scenario lower adjacent connectivity. After
+simulation, the result page begins with an **Evacuation Passage Priority**
+graph. Selecting an action card refreshes that graph, its crew/equipment order,
+and its hatch-bottleneck summary for that action.
+When an emergency is introduced, adjacent hatch connectivity immediately rolls
+to 1–50 and continues changing once per second as the affected module's air
+falls. Choosing **Electronic Short** also rolls adjacent power passage to
+5–20%; the canvas prints `PWR n%` and the yellow flow visibly slows. Result
+cards show the combined resource/fire survival estimate and its active causes.
+The hazard dialog also recommends an **Evacuation Target Hatch / Direction**.
+Every open hatch is evaluated in both directions. Only a target-side zone that
+separates from the hazard and independently meets power demand, air demand, and
+a 60-minute whole-crew water reserve can be selected. Operators may retain the
+recommendation or manually choose any other eligible direction. The selected
+edge is green and labelled `ESC module-1 » module-2` in the topology and
+`ESC →/←` in the deck plan.
+
+Suggested future scenarios should include at least one constrained route—for
+example a fire beside a 49-connectivity hatch followed by a 25-connectivity
+hatch—and enough crew plus portable return equipment to exceed the route's
+capacity. The advisor is instructed to compare alternate passage orderings,
+fresh-air/connectivity feedback, unique function providers, and total expected
+surviving returnees.
+
+### Windows quick start
+
+From the repository root, create the private configuration file once and edit
+the placeholders:
+
+```powershell
+Copy-Item "Phase b\spacecraft-sim\backend\.env.example" "Phase b\spacecraft-sim\backend\.env"
+notepad "Phase b\spacecraft-sim\backend\.env"
+```
+
+Then start both servers with one command:
+
+```powershell
+.\run-app.ps1
+```
+
+You can also double-click `run-app.bat`. The launcher creates/reuses the Python
+virtual environment, installs missing backend/frontend dependencies, and opens
+`http://localhost:5173`. The private `.env` file is ignored by Git.
+
 ### Backend
 
 **Requirements:** Python 3.11+
 
-```powershell
-cd spacecraft-sim/backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```bash
+cd "Phase b/spacecraft-sim/backend"
+python3 -m venv .venv-macos
+source .venv-macos/bin/activate
 pip install -r requirements.txt
-pip install -e ..\..\..\spacecraft-sim   # the Phase A engine (spacecraft_sim)
+pip install -e ../../../spacecraft-sim -e "../../../phase-c[granite]"
 uvicorn app.main:app --reload
 ```
 
@@ -113,8 +187,8 @@ Backend runs at `http://localhost:8000`. Verify with `GET http://localhost:8000/
 
 **Requirements:** Node.js 18+
 
-```powershell
-cd spacecraft-sim/frontend
+```bash
+cd "Phase b/spacecraft-sim/frontend"
 npm install
 npm run dev
 ```
@@ -123,13 +197,13 @@ Frontend runs at `http://localhost:5173`. The Vite dev server proxies `/api` to 
 
 ### Backend Tests
 
-```powershell
-cd spacecraft-sim/backend
-.\.venv\Scripts\Activate.ps1
+```bash
+cd "Phase b/spacecraft-sim/backend"
+source .venv-macos/bin/activate
 python -m pytest tests/ -v
 ```
 
-All 34 tests should pass.
+All backend tests should pass.
 
 ---
 
@@ -216,5 +290,5 @@ Bob did not implement Phase A physics or Phase C agents (both out of scope).
 - [x] No crew-value weighting
 - [x] No "BEST ACTION" recommendation
 - [x] Mock outputs clearly labeled
-- [x] 34 backend tests pass
+- [x] Backend tests pass
 - [x] Frontend builds with 0 TypeScript errors

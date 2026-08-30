@@ -76,6 +76,43 @@ def test_move_crew_explicit_order():
     assert crew2.state == "TRAPPED"
 
 
+def test_declared_escape_target_overrides_nearest_safe_module():
+    scenario = make_line_scenario(n_modules=3)
+    scenario.escape_target_connection_id = "c1"
+    scenario.escape_from_module_id = "A2"
+    scenario.escape_target_module_id = "A3"
+    crew = add_crew(scenario, "C1", "engineer", "A1")
+    flood_with_smoke(scenario, "A1", 1.0)
+
+    for step in range(8):
+        update_crew(scenario, t=step * 60.0, dt=60.0, response_seconds=0.0)
+
+    assert crew.state == "EVACUATED"
+    assert crew.module_id == "A3"
+
+
+def test_refuge_capacity_reserves_seats_by_priority_and_denies_last_crew():
+    scenario = make_line_scenario(n_modules=4)
+    scenario.escape_target_connection_id = "c2"
+    scenario.escape_from_module_id = "A3"
+    scenario.escape_target_module_id = "A4"
+    scenario.escape_capacity_people = 1
+    engineer = add_crew(scenario, "C-engineer", "engineer", "A1")
+    passenger = add_crew(scenario, "C-passenger", "passenger", "A1")
+
+    for step in range(12):
+        update_crew(scenario, t=step * 60.0, dt=60.0, response_seconds=0.0)
+
+    assert engineer.state == "EVACUATED"
+    assert engineer.module_id == "A4"
+    assert passenger.state == "TRAPPED"
+    assert passenger.module_id == "A3"
+    assert passenger.escape_capacity_denied is True
+    assert scenario.connection("c2").path_state == "closed"
+    assert scenario.connection("c2").power_line_on is False
+    assert scenario.connection("c2").water_line_on is False
+
+
 def test_crew_walk_through_hatches_not_imv():
     scenario = make_line_scenario(n_modules=2, connection_type="imv", ventilation="on")
     crew = add_crew(scenario, "C1", "engineer", "A1")

@@ -39,8 +39,8 @@ export default function InspectorPanel({ selectedModuleId, selectedConnectionId,
         right: 0,
         width: isOpen ? 320 : 0,
         height: '100vh',
-        background: '#111318',
-        borderLeft: isOpen ? '1px solid #2a2d36' : 'none',
+        background: 'var(--surface)',
+        borderLeft: isOpen ? '1px solid var(--line)' : 'none',
         transition: 'width 0.2s ease',
         overflow: 'hidden',
         zIndex: 100,
@@ -54,7 +54,7 @@ export default function InspectorPanel({ selectedModuleId, selectedConnectionId,
           <div
             style={{
               padding: '14px 16px',
-              borderBottom: '1px solid #2a2d36',
+              borderBottom: '1px solid var(--line)',
               display: 'flex',
               alignItems: 'flex-start',
               gap: 8,
@@ -64,7 +64,7 @@ export default function InspectorPanel({ selectedModuleId, selectedConnectionId,
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  color: '#e2e8f0',
+                  color: 'var(--ink)',
                   fontWeight: 600,
                   fontSize: 14,
                   overflow: 'hidden',
@@ -74,7 +74,7 @@ export default function InspectorPanel({ selectedModuleId, selectedConnectionId,
               >
                 {title}
               </div>
-              <div style={{ color: '#64748b', fontSize: 11, marginTop: 2, letterSpacing: '0.06em' }}>
+              <div style={{ color: 'var(--ink-3)', fontSize: 11, marginTop: 2, letterSpacing: '0.06em' }}>
                 {subtitle}
               </div>
             </div>
@@ -83,7 +83,7 @@ export default function InspectorPanel({ selectedModuleId, selectedConnectionId,
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--ink-3)',
                 cursor: 'pointer',
                 fontSize: 18,
                 padding: '0 4px',

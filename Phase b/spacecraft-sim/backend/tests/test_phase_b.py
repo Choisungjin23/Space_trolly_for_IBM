@@ -106,6 +106,39 @@ def make_large_scenario(n: int = 10) -> tuple[ScenarioIn, EmergencyConfigIn]:
 
 # ─── Adapter unit tests ──────────────────────────────────────────────────────
 
+def test_directional_escape_target_requires_an_independently_survivable_zone():
+    fixture = json.loads((FIXTURES_DIR / "five_module_demo.json").read_text("utf-8"))
+    fixture["emergency"]["escapeTarget"] = {
+        "connectionId": "conn-storage2-ls2",
+        "fromModuleId": "mod-storage-2",
+        "toModuleId": "mod-life-support-2",
+        "selection": "recommended",
+    }
+    scenario = ScenarioIn(**fixture)
+    assert scenario.emergency.escapeTarget.toModuleId == "mod-life-support-2"
+
+    fixture["emergency"]["escapeTarget"] = {
+        "connectionId": "conn-hab-stor",
+        "fromModuleId": "mod-storage",
+        "toModuleId": "mod-habitat",
+        "selection": "manual",
+    }
+    with pytest.raises(ValueError, match="entry side is not connected"):
+        ScenarioIn(**fixture)
+
+
+def test_equipment_power_defaults_by_type_and_source_capabilities_are_removed():
+    equipment = EquipmentIn(
+        id="eq",
+        name="Generator",
+        type="life_support",
+        state="operational",
+        providesCapabilities=["oxygen_supply", "electrical_power", "habitation"],
+    )
+    assert equipment.powerConsumptionW == 25
+    assert equipment.providesCapabilities == ["habitation"]
+
+
 class TestGenerateActions:
     def test_do_nothing_always_present(self):
         scenario, emergency = make_minimal_scenario("alpha")
@@ -280,7 +313,7 @@ class TestTemplatesEndpoint:
         data = response.json()
         assert "modules" in data
         assert "connections" in data
-        assert len(data["modules"]) == 5
+        assert len(data["modules"]) == 8
 
     def test_unknown_template_returns_404(self):
         response = client.get("/api/templates/does-not-exist")

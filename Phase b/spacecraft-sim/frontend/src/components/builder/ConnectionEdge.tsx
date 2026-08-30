@@ -15,25 +15,34 @@ import {
   getBezierPath,
   type EdgeProps,
 } from '@xyflow/react'
-import type { ScenarioConnection } from '../../types/scenario'
+import type { EscapeTarget, ScenarioConnection } from '../../types/scenario'
 
 export interface ConnectionEdgeData extends Record<string, unknown> {
   connection: ScenarioConnection
+  /** True when this pathway meets the module that is alight. */
+  touchesFire?: boolean
+  escapeTarget?: EscapeTarget
 }
 
-const TRANSFER_CLASS_COLORS: Record<string, string> = {
-  high: '#ef4444',
-  medium: '#f59e0b',
-  low: '#22c55e',
-  none: '#475569',
-  unknown: '#475569',
+/**
+ * Pathway class reads through line treatment, not through five colours.
+ * A hatch is a solid rule, an IMV duct is dashed because it only carries while
+ * a fan runs, and a leak is finely broken because it is a path nobody chose.
+ * Colour stays neutral here so the emergency remains the only warm thing on
+ * the chart.
+ */
+const PATH_STYLE: Record<string, { dash?: string; width: number }> = {
+  hatch: { width: 1.25 },
+  imv: { dash: '5,3', width: 1.25 },
+  leak: { dash: '1.5,3', width: 1 },
+  other: { width: 1 },
 }
 
 const CONNECTION_TYPE_SHORT: Record<string, string> = {
-  hatch: 'H',
+  hatch: 'HATCH',
   imv: 'IMV',
-  leak: 'LK',
-  other: '?',
+  leak: 'LEAK',
+  other: 'PATH',
 }
 
 function ConnectionEdge({
@@ -60,10 +69,22 @@ function ConnectionEdge({
   })
 
   const isClosed = connection?.state === 'closed'
-  const transferColor = TRANSFER_CLASS_COLORS[connection?.transferClass ?? 'unknown']
+  const isLeak = connection?.type === 'leak'
+  const shape = PATH_STYLE[connection?.type ?? 'other'] ?? PATH_STYLE.other
   const typeShort = CONNECTION_TYPE_SHORT[connection?.type ?? 'other']
-  const strokeColor = selected ? '#3b82f6' : isClosed ? '#475569' : transferColor
-  const strokeDash = isClosed ? '6,4' : undefined
+  const touchesFire = (data as ConnectionEdgeData | undefined)?.touchesFire
+  const escapeTarget = (data as ConnectionEdgeData | undefined)?.escapeTarget
+  const isEscape = escapeTarget?.connectionId === connection?.id
+  const strokeColor = selected
+    ? 'var(--gold)'
+    : isEscape
+      ? 'var(--good)'
+    : isLeak
+      ? 'var(--ember)'
+      : touchesFire && !isClosed
+        ? 'var(--ember)'
+        : 'var(--ink-4)'
+  const strokeDash = isClosed ? '2,4' : shape.dash
 
   return (
     <>
@@ -73,9 +94,10 @@ function ConnectionEdge({
         markerEnd={markerEnd}
         style={{
           stroke: strokeColor,
-          strokeWidth: selected ? 2.5 : 1.8,
+          strokeWidth: selected ? 1.75 : touchesFire ? shape.width + 0.6 : shape.width,
           strokeDasharray: strokeDash,
-          transition: 'stroke 0.15s',
+          opacity: isClosed ? 0.55 : 1,
+          transition: 'stroke .15s, opacity .15s',
         }}
       />
       <EdgeLabelRenderer>
@@ -88,25 +110,56 @@ function ConnectionEdge({
         >
           <div
             style={{
-              background: '#1e2128',
-              border: `1px solid ${strokeColor}`,
-              borderRadius: 4,
+              background: 'var(--void)',
+              border: `1px solid ${
+                selected ? 'var(--gold)' : touchesFire ? 'var(--ember)' : 'var(--line)'
+              }`,
+              borderRadius: 2,
               padding: '1px 6px',
-              fontSize: 10,
-              fontWeight: 600,
-              color: strokeColor,
-              fontFamily: '-apple-system, "Segoe UI", system-ui, sans-serif',
+              fontSize: 9.5,
+              fontWeight: 500,
+              letterSpacing: '.12em',
+              color: selected
+                ? 'var(--gold)'
+                : touchesFire
+                  ? 'var(--ember)'
+                  : 'var(--ink-2)',
+              fontFamily: 'var(--font-mono)',
               whiteSpace: 'nowrap',
               display: 'flex',
               alignItems: 'center',
-              gap: 3,
+              gap: 5,
             }}
           >
             {typeShort}
-            {connection?.type === 'imv' && connection.ventilationOn && (
-              <span style={{ color: '#06b6d4' }}>↻</span>
+            {isEscape && escapeTarget && (
+              <span style={{ color: 'var(--good)' }} title="Evacuation target direction">
+                ESC {escapeTarget.fromModuleId} » {escapeTarget.toModuleId}
+              </span>
             )}
-            {isClosed && <span style={{ color: '#ef4444' }}>✕</span>}
+            {connection?.type === 'hatch' && (
+              <span
+                style={{ color: connection.connectivity < 50 ? 'var(--ember)' : 'var(--ink-3)' }}
+                title="Connectivity (inverse movement/air resistance)"
+              >
+                {Math.round(connection.connectivity)}/100
+              </span>
+            )}
+            {connection?.type === 'hatch' && connection.powerTransferFactor < 1 && (
+              <span style={{ color: 'var(--ember)' }} title="Electronic-short power passage">
+                PWR {Math.round(connection.powerTransferFactor * 100)}%
+              </span>
+            )}
+            {connection?.type === 'imv' && connection.ventilationOn && (
+              <span style={{ color: 'var(--verified)' }} title="Ventilation running">
+                FLOW
+              </span>
+            )}
+            {isClosed && (
+              <span style={{ color: 'var(--ember)' }} title="Closed">
+                SEALED
+              </span>
+            )}
           </div>
         </div>
       </EdgeLabelRenderer>

@@ -2,10 +2,22 @@ from pathlib import Path
 
 import pytest
 
+from phase_c import config
 from phase_c.contracts.findings import AgentFinding, Claim, Recommendation, Tradeoff
 from phase_c.providers.mock import MockSimulationProvider
 
 FIXTURE = Path(__file__).parent / "fixtures" / "demo_case.json"
+
+
+@pytest.fixture(autouse=True)
+def isolated_watsonx_env(tmp_path, monkeypatch):
+    """Keep the developer's real backend/.env out of the test environment.
+
+    phase_c.config discovers a .env when configuration is read, so without
+    this a machine with working credentials would silently pass tests that
+    are meant to prove the unconfigured behaviour.
+    """
+    monkeypatch.setenv(config.ENV_FILE_VAR, str(tmp_path / "absent.env"))
 
 
 @pytest.fixture

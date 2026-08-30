@@ -1,0 +1,8 @@
+# Local credentials and generated development files
+.env
+.venv/
+.venv-macos/
+.run-logs/
+__pycache__/
+.pytest_cache/
+*.py[cod]

@@ -29,13 +29,62 @@ Requirements:
 4. `dissent` carries every critic issue you did not resolve. Do not quietly drop
    objections; if you disagree with one, say so there.
 5. `rationale` claims follow the same grounding rules as the other agents: every
-   number must come from the DATA, with refs pointing at it.
-6. Monte Carlo results are counts over sampled assumption sets, never
-   probabilities or percentages.
+   number must come from the DATA, with refs pointing at it. Your DATA is the
+   whole case, so an action's value is cited through its index in `actions`:
+   write "/actions/0/sampled/counts/no_crew_trapped", never
+   "/sampled/counts/no_crew_trapped". The `refs` you can see inside `findings`
+   are each specialist's pointers into its own private view of one action -
+   they do not resolve here, so do not copy them.
+6. Maximize `expected_returnees` first, then `expected_survivors`, under the
+   declared resource constraints. Monte Carlo counts are not probabilities;
+   the engine's explicit crew survival/return probabilities are model outputs.
 7. `human_decision_required` stays true. You advise; the operator decides.
-8. No fatality, lethality or survival-probability language. The engine models
-   crew states and exposure only.
+8. A recommendation may isolate or abandon a rescue when that maximizes total
+   expected surviving returnees. Name who is affected, why, and the alternative.
+   These estimates are ASSUMED model outputs, not clinical guarantees.
+9. Account for hatch queues explicitly. Compare connectivity, crew/min and air
+   %/min, people waiting, and the passage order. Crew capacity is allocated
+   before portable equipment; consider whether an alternate crew ordering
+   improves expected surviving returnees while preserving indispensable return
+   equipment. Include the negative feedback from each hazardous passage.
+
+The DATA is trimmed for comparison: each action lists only the equipment whose
+state is not nominal, and the per-action timeline is omitted. Everything shown
+is citable as usual. Engine provenance is the same for every action: constants
+named VERIFIED_* come from primary sources, ASSUMED_* are PoC assumptions and
+are not validated.
 """
+
+
+def _comparable(analysis) -> dict:
+    """What the coordinator needs to weigh one action against another.
+
+    Whole subtrees are dropped, never reshaped. That distinction matters: a
+    surviving value keeps the exact JSON pointer the fact registry built for
+    it, so trimming cannot turn a sound citation into a grounding violation.
+    Reshaping the payload would.
+
+    The saving is large. Every action carried a full equipment inventory and a
+    copy of the same provenance block, so a ten-action case spent most of its
+    prompt restating things that do not differ between the options.
+    """
+    data = analysis.model_dump(mode="json")
+
+    # The specialists read the timeline in depth; the coordinator compares
+    # outcomes, and `detection` already carries the timing that decides.
+    data.pop("events", None)
+    # Identical for every action — stated once in the rules above instead.
+    data.pop("provenance", None)
+
+    equipment = data.get("equipment")
+    if isinstance(equipment, dict):
+        # Nominal equipment is the default; only departures inform a choice.
+        data["equipment"] = {
+            equipment_id: item
+            for equipment_id, item in equipment.items()
+            if item.get("damaged") or not item.get("powered", True)
+        }
+    return data
 
 
 class CoordinatorAgent:
@@ -44,6 +93,28 @@ class CoordinatorAgent:
     def __init__(self, llm: LLMClient) -> None:
         self.llm = llm
 
+    def payload(
+        self,
+        case: CaseAnalysis,
+        findings: list[AgentFinding],
+        critic: CriticReview,
+        evidence: list[EvidenceAnswer],
+    ) -> dict:
+        """Everything the coordinator is shown.
+
+        Public because the grounding validator has to check its citations
+        against this exact tree - the coordinator cites into a case-shaped
+        payload (`/actions/0/hazard/...`), not into a single action.
+        """
+        return {
+            "mission_phase": case.mission_phase,
+            "capability_names_declared_by_scenario": case.capability_names,
+            "actions": [_comparable(a) for a in case.actions],
+            "findings": [f.model_dump(mode="json") for f in findings],
+            "critic": critic.model_dump(mode="json"),
+            "evidence": [e.model_dump(mode="json") for e in evidence],
+        }
+
     def recommend(
         self,
         case: CaseAnalysis,
@@ -51,20 +122,15 @@ class CoordinatorAgent:
         critic: CriticReview,
         evidence: list[EvidenceAnswer],
     ) -> Recommendation:
-        payload = {
-            "mission_phase": case.mission_phase,
-            "capability_names_declared_by_scenario": case.capability_names,
-            "actions": [a.model_dump(mode="json") for a in case.actions],
-            "findings": [f.model_dump(mode="json") for f in findings],
-            "critic": critic.model_dump(mode="json"),
-            "evidence": [e.model_dump(mode="json") for e in evidence],
-        }
+        payload = self.payload(case, findings, critic, evidence)
 
         recommendation = self.llm.complete(
             system=COORDINATOR_RULES,
             user=(
                 "Compare every action in the DATA and recommend one.\n\n"
-                f"{json.dumps(payload, indent=2, ensure_ascii=False)}"
+                # Compact separators: indentation is a third of this payload
+                # and carries nothing the model reads.
+                f"{json.dumps(payload, separators=(',', ':'), ensure_ascii=False)}"
             ),
             schema=Recommendation,
         )

@@ -1,118 +1,228 @@
 @import "tailwindcss";
 
-/* ─── Mission-control dark theme CSS variables ────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE ADVICE OF CIRCE — design tokens
+
+   Celestial navigation chart x spacecraft mission control.
+
+   The palette commits to one dark world: a near-black ground, warm off-white
+   ink, and a single restrained antique gold that carries brand and primary
+   action. Indigo is the structural secondary. Amber and ember are reserved
+   for live hazard and never spent on ordinary UI, so that when a module is
+   burning the colour actually means something.
+
+   Provenance has its own pair (teal / amber) held apart from hazard, because
+   "this number came from a source" and "this module is on fire" are different
+   kinds of statement and must not read alike.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg-base: #0a0c10;
-  --bg-surface: #111318;
-  --bg-elevated: #1a1d24;
-  --bg-card: #1e2128;
-  --border: #2a2d36;
-  --border-subtle: #1e2028;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent-blue: #3b82f6;
-  --accent-blue-dim: #1d4ed8;
-  --accent-amber: #f59e0b;
-  --accent-red: #ef4444;
-  --accent-green: #22c55e;
-  --accent-cyan: #06b6d4;
-  --accent-purple: #a855f7;
-  --hazard-none: #22c55e;
-  --hazard-low: #84cc16;
-  --hazard-medium: #f59e0b;
-  --hazard-high: #ef4444;
+  /* Ground */
+  --void:          #07080b;
+  --surface:       #0d0f14;
+  --surface-2:     #12151c;
+  --surface-3:     #181c25;
+  --line:          #232733;
+  --line-soft:     #191d26;
+
+  /* Ink — warm off-white against a cool ground */
+  --ink:           #f2ede2;
+  --ink-2:         #b3becd;
+  --ink-3:         #8794a5;
+  --ink-4:         #64717f;
+
+  /* Brand */
+  --gold:          #c2a15b;
+  --gold-bright:   #dcbd77;
+  --gold-dim:      #6d5a30;
+  --gold-wash:     rgba(194, 161, 91, .09);
+
+  /* Structural secondary */
+  --indigo:        #5a6da3;
+  --indigo-dim:    #2b3450;
+  --indigo-wash:   rgba(90, 109, 163, .10);
+
+  /* Hazard — earned, not decorative */
+  --amber:         #e8952f;
+  --amber-wash:    rgba(232, 149, 47, .12);
+  --ember:         #e0503f;
+  --ember-bright:  #ff7a5c;
+  --ember-wash:    rgba(224, 80, 63, .14);
+  --ember-deep:    rgba(224, 80, 63, .30);
+
+  /* Provenance — deliberately not the hazard hues */
+  --verified:      #4f9e8c;
+  --verified-wash: rgba(79, 158, 140, .11);
+  --assumed:       #b58a4a;
+  --assumed-wash:  rgba(181, 138, 74, .11);
+
+  /* Outcome semantics for data panels */
+  /* Safe has to look safe at a glance, so this is a bright, unambiguous
+     green rather than the muted sage it was — it is the one reading an
+     operator should be able to trust from across the room. */
+  --good:          #43d787;
+  --good-bright:   #6ee7a5;
+  --good-wash:     rgba(67, 215, 135, .13);
+  --warn:          #e0a63f;
+  --bad:           #e2685a;
+
+  /* Type */
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-ui: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Legacy aliases — existing inline styles still reference these while the
+     redesign lands component by component. Repointed, not removed, so nothing
+     falls back to the old blue palette mid-migration. */
+  --bg-base: var(--void);
+  --bg-surface: var(--surface);
+  --bg-elevated: var(--surface-2);
+  --bg-card: var(--surface-3);
+  --border: var(--line);
+  --border-subtle: var(--line-soft);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted: var(--ink-3);
+  --accent-blue: var(--indigo);
+  --accent-blue-dim: var(--indigo-dim);
+  --accent-amber: var(--amber);
+  --accent-red: var(--ember);
+  --accent-green: var(--good);
+  --accent-cyan: var(--verified);
+  --accent-purple: var(--gold);
+  --hazard-none: var(--good);
+  --hazard-low: var(--warn);
+  --hazard-medium: var(--amber);
+  --hazard-high: var(--ember);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font-ui);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ─── React Flow overrides ────────────────────────────────────────────────── */
-.react-flow__background {
-  background-color: var(--bg-base) !important;
+/* ─── Type roles ──────────────────────────────────────────────────────────── */
+.circe-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: .01em;
+  line-height: .96;
 }
 
-.react-flow__minimap {
-  background: var(--bg-elevated) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 6px;
+.circe-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
-.react-flow__minimap-mask {
-  fill: rgba(59, 130, 246, 0.15) !important;
-}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-.react-flow__controls {
-  background: var(--bg-elevated) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.react-flow__controls-button {
-  background: var(--bg-elevated) !important;
-  border-bottom: 1px solid var(--border) !important;
-  color: var(--text-secondary) !important;
-  fill: var(--text-secondary) !important;
-}
-
-.react-flow__controls-button:hover {
-  background: var(--bg-card) !important;
-}
-
-.react-flow__edge-path {
-  stroke-width: 2;
-}
-
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--accent-blue);
-}
-
-.react-flow__handle {
-  background: var(--accent-blue) !important;
-  border: 2px solid var(--bg-base) !important;
-  width: 10px !important;
-  height: 10px !important;
-}
-
-.react-flow__handle:hover {
-  background: var(--accent-cyan) !important;
-}
-
-.react-flow__connection-path {
-  stroke: var(--accent-cyan) !important;
-  stroke-width: 2;
-  stroke-dasharray: 5, 5;
-}
-
-/* ─── Scrollbars ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-base);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
+/* ─── Focus: visible everywhere, never a default halo ─────────────────────── */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 2px;
   border-radius: 3px;
 }
 
-/* ─── Utilities ────────────────────────────────────────────────────────────── */
-.truncate {
+/* ─── React Flow: thin chart lines, not dashboard chrome ──────────────────── */
+.react-flow__background { background-color: var(--void) !important; }
+
+.react-flow__minimap {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 4px;
+}
+.react-flow__minimap-mask { fill: rgba(90, 109, 163, .14) !important; }
+
+.react-flow__controls {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 4px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  box-shadow: none !important;
+}
+.react-flow__controls-button {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--line) !important;
+  color: var(--ink-2) !important;
+  fill: var(--ink-2) !important;
+}
+.react-flow__controls-button:hover { background: var(--surface-3) !important; }
+
+.react-flow__edge-path { stroke-width: 1.25; }
+.react-flow__edge.selected .react-flow__edge-path { stroke: var(--gold); }
+
+.react-flow__handle {
+  background: var(--surface-3) !important;
+  border: 1px solid var(--ink-4) !important;
+  width: 7px !important;
+  height: 7px !important;
+  transition: background .15s, border-color .15s;
+}
+.react-flow__handle:hover {
+  background: var(--gold) !important;
+  border-color: var(--gold) !important;
+}
+
+.react-flow__connection-path {
+  stroke: var(--gold) !important;
+  stroke-width: 1.25;
+  stroke-dasharray: 3, 4;
+}
+
+.react-flow__attribution { display: none; }
+
+/* ─── Scrollbars ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* ─── Utilities ───────────────────────────────────────────────────────────── */
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@keyframes circe-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes circe-draw { to { stroke-dashoffset: 0; } }
+@keyframes circe-pulse { 50% { opacity: .35; } }
+
+/* A module that is alight. The glow breathes rather than flashes — an alarm
+   that strobes is read once and then tuned out. */
+@keyframes circe-burn {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px var(--ember),
+      0 0 16px var(--ember-deep),
+      inset 0 0 24px rgba(224, 80, 63, .13);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--ember-bright),
+      0 0 30px var(--ember-deep),
+      inset 0 0 34px rgba(224, 80, 63, .22);
+  }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
 }

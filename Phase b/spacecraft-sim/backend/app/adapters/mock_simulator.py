@@ -31,6 +31,8 @@ from app.api.schemas import (
     EquipmentOutcomeSummary,
     ExampleTrajectory,
     HazardOutcome,
+    ModuleResourceOutcome,
+    ResourceOutcomeSummary,
     ScenarioIn,
     EmergencyConfigIn,
     SimulationResponse,
@@ -240,7 +242,19 @@ def simulate(
             else:
                 status = "safe"
                 exp = 0
-            crew_outcomes[crew_id] = CrewMemberOutcome(status=status, exposureExampleSeconds=exp)
+            survival = {
+                "safe": 0.995,
+                "evacuated": 0.985,
+                "evacuating": 0.96,
+                "exposed": 0.80,
+            }.get(status, 0.90)
+            crew_outcomes[crew_id] = CrewMemberOutcome(
+                status=status,
+                exposureExampleSeconds=exp,
+                survivalProbability=survival,
+                returnProbability=survival,
+                abandoned=False,
+            )
 
         # Build per-equipment outcome
         equipment_outcomes: dict[str, EquipmentItemOutcome] = {}
@@ -271,6 +285,21 @@ def simulate(
                 cap_summary[cap] = "degraded"
             else:
                 cap_summary[cap] = "unavailable"
+
+        for module in modules.values():
+            equipment_w = sum(
+                equipment.powerConsumptionW
+                for equipment in module.equipment
+                if equipment.state in ("operational", "exposed_at_risk")
+            )
+            output_w = (25.0 if module.type == "life_support" and module.suppliesAir else 0.0) + (
+                20.0 if module.type == "life_support" and module.suppliesWater else 0.0
+            )
+            powered = module.powerLevelW >= module.powerConsumptionW + equipment_w + output_w
+            if module.type == "life_support" and module.suppliesAir:
+                cap_summary["oxygen_supply"] = "available" if powered else "unavailable"
+            if module.type == "power" and module.maxPowerOutputW > 0:
+                cap_summary["electrical_power"] = "available" if powered else "unavailable"
 
         # Build critical functions from providesFunctions
         function_map: dict[str, list[str]] = {}  # function -> list of crew statuses
@@ -317,6 +346,41 @@ def simulate(
             n_steps=5,
         )
 
+        resource_outcomes = {
+            module_id: ModuleResourceOutcome(
+                powerLevelW=module.powerLevelW,
+                powerDemandW=(
+                    module.powerConsumptionW
+                    + sum(
+                        equipment.powerConsumptionW
+                        for equipment in module.equipment
+                        if equipment.state in ("operational", "exposed_at_risk")
+                    )
+                    + (25.0 if module.type == "life_support" and module.suppliesAir else 0.0)
+                    + (20.0 if module.type == "life_support" and module.suppliesWater else 0.0)
+                ),
+                powerSufficient=module.powerLevelW >= (
+                    module.powerConsumptionW
+                    + sum(
+                        equipment.powerConsumptionW
+                        for equipment in module.equipment
+                        if equipment.state in ("operational", "exposed_at_risk")
+                    )
+                    + (25.0 if module.type == "life_support" and module.suppliesAir else 0.0)
+                    + (20.0 if module.type == "life_support" and module.suppliesWater else 0.0)
+                ),
+                airLevelPercent=(module.oxygenFraction or 0.0) * 100.0,
+                waterStoredKg=module.waterStoredKg,
+                waterDemandKgPerMin=0.00264 * len(module.crew),
+                waterSufficient=(not module.crew) or module.waterStoredKg > 0,
+            )
+            for module_id, module in modules.items()
+        }
+        expected_survivors = sum(
+            outcome.survivalProbability for outcome in crew_outcomes.values()
+        )
+        return_available = cap_summary.get("return_capability", "available") != "unavailable"
+
         results.append(ActionSimulationResult(
             actionId=action.id,
             hazard=HazardOutcome(
@@ -334,6 +398,9 @@ def simulate(
             equipment=EquipmentOutcomeSummary(byEquipmentId=equipment_outcomes),
             capabilities=CapabilityOutcomeSummary(byCapability=cap_summary),
             criticalFunctions=CriticalFunctionSummary(byFunction=fn_summary),
+            resources=ResourceOutcomeSummary(byModuleId=resource_outcomes),
+            expectedSurvivors=expected_survivors,
+            expectedReturnees=expected_survivors if return_available else 0.0,
             uncertaintySummary=UncertaintySummary(
                 note="Mock Phase B output. Sample counts do not reflect validated physical simulation."
             ),

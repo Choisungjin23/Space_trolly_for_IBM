@@ -19,10 +19,9 @@ later. An earlier FastAPI + React prototype is kept in `legacy/` for reference.
 ## Design principles
 
 1. **The simulator produces the numbers; AI never invents them.**
-2. Values that cannot be calibrated from evidence were **removed**:
-   `PROPAGATION_FACTOR`, generic spread probabilities, `CREW_FATALITY_FACTOR`,
-   `P(death)`, generic system-failure probabilities, a global fire
-   `GROWTH_RATE`. Tests enforce their absence.
+2. Generic fire-severity death coin flips and invented spread/failure odds were
+   removed. Crew survival is now an explicit, auditable **ASSUMED** function of
+   oxygen and contaminant exposure, used only to compare resource decisions.
 3. Every constant lives in `src/spacecraft_sim/config.py` and **declares its
    provenance in its name**: `VERIFIED_*` came from a NASA primary source,
    `ASSUMED_*` is an unvalidated PoC assumption. A test fails the build if a
@@ -86,7 +85,7 @@ an assumed penalty factor longer to confirm** — cutting ventilation slows your
 own alarm. The action then lands at `detection time + decision delay`, so "how
 fast the crew learn" is an emergent property rather than a free parameter.
 
-## Crew (A-6): states and dose, never death odds
+## Crew (A-6): states, dose, survival and return estimates
 
 `SAFE → EXPOSED → EVACUATING → EVACUATED | TRAPPED`, plus
 `hazard_exposure_seconds` and a cumulative **`smac_dose_fraction`** where 1.0
@@ -99,7 +98,62 @@ which is why species are tracked separately.
 
 Crew evacuate through **open hatches only** (IMV ducts are not passages),
 re-plan when a hatch closes mid-route, and are TRAPPED when no route exists.
-There is no fatality formula anywhere.
+Each hatch also has a persistent `connectivity` value: inverse combined
+movement/air resistance. At 100 it passes 4 crew/min and 10 percentage-points
+of clean air/min; at 49 those limits are 1.96 crew/min and 4.9 points/min, and
+at 25 they are 1 crew/min and 2.5 points/min. Fire, smoke, other declared
+disruption, and each hazardous crew/equipment passage reduce connectivity.
+Passage also consumes a small amount of fresh air, with a larger penalty at
+lower connectivity.
+Activating an emergency rolls every adjacent hatch to `1..50`. Connectivity is
+then capped by the lower endpoint's fresh-air ratio and continues to decline
+under hazard and passage feedback. An `electronic_short` additionally limits
+adjacent power passage (the Phase B roll is 5–20%), independently of air and
+water lines.
+
+When capacity is insufficient, crew are queued by immediate hazard, modeled
+survival risk, and preservation of non-redundant mission functions. Crew use
+available capacity before portable equipment; portable equipment is then
+ordered by mission-system contribution. This is an operational scheduling
+score, never a claim about a person's intrinsic worth.
+Scenarios may declare a directional evacuation target as a hatch plus
+`from_module → to_module`. Hazard-exposed crew then route to the target side
+instead of stopping at the nearest merely non-hazardous module. Phase B accepts
+the target only when removing that hatch separates the hazard side and the
+target zone has sufficient independent power output, clean-air output, and a
+60-minute water reserve for the whole crew.
+The crew mortality model compounds low oxygen, contaminants, insufficient
+power, insufficient water, and direct incipient/sustained-fire exposure. It
+also reports the modeled minutes remaining until survival falls to 1% under
+the current rate; this is an explicit PoC assumption, not a clinical estimate.
+The engine now exposes an explicitly assumed mortality model. It combines
+oxygen deprivation and contaminant exposure into per-crew modeled survival and
+return probabilities. These are decision-model estimates, not clinical
+forecasts; constants remain visibly prefixed `ASSUMED_*`.
+
+## Utility resources
+
+Each module carries a power service level and demand, an oxygen fraction, and
+stored water. Power modules declare maximum output; life-support modules select
+air, water, or both and declare per-minute output limits. Hatch connections
+carry independently switchable power, air, and water lines.
+
+Equipment carries its own watt demand. A module's live demand is its 10 W base
+service plus powered equipment; enabling life-support Air adds an assumed 25 W
+controller/compressor load and Water adds an assumed 20 W pump/recovery load.
+`oxygen_supply` and `electrical_power` capabilities are emitted by enabled
+source modules, not assigned as equipment capability tags.
+
+- Power loses `1 W` of service level per hop and is shared evenly when source
+  output cannot meet total assigned demand.
+- Clean air targets `25%` O₂, loses `0.5` percentage-point per hop, and every
+  module consumes `0.01` percentage-point/min.
+- Crew water demand is an assumed `0.00264 kg/min/person` (3.8 kg/day for an
+  active-adult planning case); empty modules consume none.
+  Refill occurs only for consumed water, transfer loses an assumed
+  `0.00001 kg/min/hop`, and a functioning ISS-style loop recovers `98%`.
+- Closing a hatch blocks air. Power and water remain controlled by their own
+  line switches. All three utilities can traverse multiple hops.
 
 ## Capability graph (A-7) and crew coupling (A-8.2)
 
@@ -162,8 +216,10 @@ would show otherwise.
 Each sample draws one plausible world — crew decision delay after the alarm,
 crew response time, unknown leak paths open/closed, ±25 % connection-flow
 uncertainty, source-profile uncertainty — then runs the deterministic engine.
-Output is **counts**: "820 / 1000 samples retained evacuation + return", never
-"82 % survival". Seeded runs are reproducible.
+Monte Carlo aggregation remains **counts**: "820 / 1000 sampled assumption sets
+retained evacuation + return", not a real-world frequency claim. Separately,
+the explicit mortality model reports per-crew assumed survival/return estimates.
+Seeded runs are reproducible.
 
 ## CLI
 

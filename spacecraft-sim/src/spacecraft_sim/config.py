@@ -18,17 +18,18 @@ the ground is how fast a fire spreads: Saffire measured microgravity pyrolysis
 spread 18-24x slower than 1g while fuel burnout was only 1.6-3x slower. So this
 model takes yields from ground fire science and spread behaviour from Saffire.
 
-Ethics: the crew criticality tables are a FMECA function-criticality model
-following MIL-STD-1629A severity classification. They express "how
-irreplaceable is this FUNCTION right now", never "how much is this person's
-life worth". The severity *categories* are quoted from the standard; assigning
-our functions to those categories is our own analysis, not a NASA ruling.
+Ethics: the top-level decision objective is to maximize expected surviving
+returnees under constrained resources. The model may therefore expose an
+explicit abandon alternative and rank crew/equipment preservation by its
+counterfactual contribution to that objective. Crew criticality still means
+"how irreplaceable is this FUNCTION right now", never a person's intrinsic
+worth. Mortality estimates are visibly ASSUMED model outputs, not clinical
+forecasts or mission rules.
 
-Deliberately absent (impossible to calibrate from evidence, per the design
-brief): PROPAGATION_FACTOR, generic spread probabilities, CREW_FATALITY_FACTOR /
-P(death), generic system failure probabilities, and a global fire GROWTH_RATE.
-The engine tracks states, concentrations and exposure instead of inventing
-survival odds.
+Deliberately absent: the old generic CREW_FATALITY_FACTOR / fire-severity death
+coin flip, PROPAGATION_FACTOR, generic spread/system-failure probabilities, and
+a global fire GROWTH_RATE. Survival is instead derived from explicit oxygen and
+contaminant exposure assumptions below, so its uncertainty remains auditable.
 ===============================================================================
 """
 
@@ -58,9 +59,18 @@ SOURCES: dict[str, str] = {
               "to 33.9 mg/g at 1000 C. Well-ventilated flaming gives the low end.",
     "FMECA": "MIL-STD-1629A, Procedures for Performing a Failure Mode, Effects "
              "and Criticality Analysis, para 4.4.3 severity classification. "
+             "https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=37050. "
              "NASA reliability requirements: NASA-STD-8729.1A. (Note: "
              "NASA-STD-8719.13 is the Software Safety Standard, cancelled "
              "2020-06-10, and is NOT a FMECA reference.)",
+    "ISS_WATER_RECOVERY": "NASA, 'NASA Achieves Water Recovery Milestone on "
+                          "International Space Station' (2023): ECLSS with the "
+                          "Brine Processor Assembly demonstrated 98% total "
+                          "water recovery.",
+    "HUMAN_TOTAL_WATER": "National Academies / Institute of Medicine, Dietary "
+                         "Reference Intakes for Water (2005): adult total-water "
+                         "adequate intake 3.7 L/day for men and 2.7 L/day for "
+                         "women; activity can increase requirements.",
 }
 
 
@@ -287,6 +297,34 @@ ASSUMED_CREW_MOVE_SECONDS_PER_HOP = round(
     + ASSUMED_HATCH_TRANSIT_SECONDS
 )
 
+# ── Dynamic hatch connectivity / evacuation throughput ─────────────────────
+# Connectivity is the inverse of combined movement/air resistance. 100 is a
+# nominal unobstructed hatch. Rates below are explicit PoC policy assumptions.
+ASSUMED_NOMINAL_HATCH_CONNECTIVITY = 100.0
+ASSUMED_HATCH_CREW_PER_MIN_AT_100 = 4.0
+ASSUMED_HATCH_AIR_PERCENT_PER_MIN_AT_100 = 10.0
+ASSUMED_FIRE_CONNECTIVITY_LOSS_PER_MIN = 1.0
+ASSUMED_INCIPIENT_CONNECTIVITY_LOSS_PER_MIN = 0.5
+ASSUMED_SMOKE_CONNECTIVITY_LOSS_PER_MIN = 0.25
+ASSUMED_MIN_DAMAGED_HATCH_CONNECTIVITY = 1.0
+# Below this threshold the resistance is treated as a physical egress block.
+# The value remains visible in telemetry, but no new crew passage credit accrues.
+ASSUMED_HATCH_IMPASSABLE_CONNECTIVITY = 5.0
+ASSUMED_CONNECTIVITY_LOSS_PER_CREW_PASSAGE = 1.0
+ASSUMED_CONNECTIVITY_LOSS_PER_EQUIPMENT_UNIT = 1.5
+ASSUMED_FRESH_AIR_LOSS_FRACTION_PER_CREW_PASSAGE = 0.0005
+ASSUMED_FRESH_AIR_LOSS_FRACTION_PER_EQUIPMENT_UNIT = 0.00075
+ASSUMED_ELECTRONIC_SHORT_POWER_TRANSFER_FACTOR = 0.12
+ASSUMED_POWER_LOSS_MORTALITY_RATE_PER_MIN = 0.015
+ASSUMED_WATER_LOSS_MORTALITY_RATE_PER_MIN = 0.0015
+ASSUMED_INCIPIENT_FIRE_MORTALITY_RATE_PER_MIN = 0.05
+ASSUMED_SUSTAINED_FIRE_MORTALITY_RATE_PER_MIN = 0.18
+# ASSUMED: crew denied entry to a declared refuge remains in the compromised
+# source zone without a sustainable return envelope. This is intentionally
+# severe for capacity-constrained evacuation scenarios, but still probabilistic.
+ASSUMED_REFUGE_CAPACITY_DENIAL_MORTALITY_RATE_PER_MIN = 0.20
+ASSUMED_SURVIVAL_TIME_THRESHOLD = 0.01
+
 
 # ── Crew <-> system coupling ─────────────────────────────────────────────────
 # Systems are not self-sufficient boxes: someone has to operate them, and
@@ -388,6 +426,39 @@ ASSUMED_FUNCTION_CRITICALITY: dict[str, float] = {
 # builders may declare arbitrary function names). Category III equivalent.
 ASSUMED_DEFAULT_FUNCTION_CRITICALITY = 0.5
 
+# The crew function a system needs to be repaired when it does not name one.
+# Scenarios that declare no systems at all still repair on these terms, so the
+# action generator and the repair loop must agree on this single value.
+DEFAULT_REPAIR_FUNCTION = "repair"
+
+# ── Utility/resource network assumptions ───────────────────────────────────
+# Power is an instantaneous service level (W); air is oxygen fraction; water
+# is stored mass (kg).  Supply rates are per minute and the engine converts its
+# second-based timestep before applying them.
+ASSUMED_DEFAULT_POWER_LEVEL_W = 10.0
+ASSUMED_DEFAULT_POWER_CONSUMPTION_W = 10.0
+ASSUMED_POWER_LEVEL_DROP_W_PER_HOP = 1.0
+# Fixed controller/pump loads applied when a life-support output is enabled.
+# These are PoC planning assumptions, not flight-hardware nameplate ratings.
+ASSUMED_AIR_OUTPUT_POWER_W = 25.0
+ASSUMED_WATER_OUTPUT_POWER_W = 20.0
+ASSUMED_NORMAL_O2_FRACTION = 0.25
+ASSUMED_AIR_CONSUMPTION_FRACTION_PER_MIN = 0.0001  # 0.01 percentage-point/min
+ASSUMED_AIR_LEVEL_DROP_FRACTION_PER_HOP = 0.005    # 0.5 percentage-point/hop
+ASSUMED_WATER_CONSUMPTION_KG_PER_CREW_MIN = 0.00264
+ASSUMED_WATER_TRANSFER_LOSS_KG_PER_MIN_PER_HOP = 0.00001
+VERIFIED_ISS_WATER_RECOVERY_EFFICIENCY = 0.98
+
+# The mortality model is intentionally explicit and marked ASSUMED.  These are
+# model hazards, not clinically validated individual prognoses.  They convert
+# oxygen deprivation and accumulated contaminant dose into a bounded modeled
+# survival estimate so resource-allocation alternatives can be compared.
+ASSUMED_HYPOXIA_ONSET_O2_FRACTION = 0.19
+ASSUMED_SEVERE_HYPOXIA_O2_FRACTION = 0.10
+ASSUMED_HYPOXIA_MORTALITY_RATE_PER_MIN = 0.025
+ASSUMED_SEVERE_HYPOXIA_MORTALITY_RATE_PER_MIN = 0.25
+ASSUMED_SMAC_MORTALITY_MULTIPLIER = 0.12
+
 ROLE_FUNCTIONS: dict[str, set[str]] = {
     "commander": {"command_decision"},
     "engineer":  {"repair", "power_ops", "life_support_ops"},
@@ -427,7 +498,9 @@ ASSUMED_UNKNOWN_PROFILE_CHOICES = (
 ETHICS_NOTICE = (
     "Mixed provenance: constants named VERIFIED_* come from primary sources "
     "(see config.SOURCES); constants named ASSUMED_* are PoC assumptions and "
-    "are not validated. Crew criticality is a FMECA function-criticality model "
-    "following MIL-STD-1629A severity classification, not a valuation of lives "
-    "and not a real mission decision norm."
+    "are not validated. Survival and return probabilities are modeled estimates "
+    "from ASSUMED hazard-response curves, not clinical forecasts. The decision "
+    "objective maximizes expected surviving returnees under limited resources; "
+    "crew priority is counterfactual mission impact, not a valuation of lives "
+    "by identity or social worth."
 )

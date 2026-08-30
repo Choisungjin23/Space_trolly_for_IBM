@@ -74,6 +74,8 @@ def step_hazard(scenario: Scenario, t: float, dt: float) -> None:
 
     for conn in scenario.connections:
         flow = conn.nominal_flow_m3_s()
+        if conn.type == "hatch":
+            flow *= conn.connectivity / 100.0
         for i, j in active_directions(conn):
             if modules[i].isolated or modules[j].isolated:
                 continue

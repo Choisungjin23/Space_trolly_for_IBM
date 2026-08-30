@@ -1,9 +1,9 @@
-"""Crew state tracking (A-6) and criticality (A-8).
+"""Crew state, modeled survival/return, and criticality (A-6, A-8).
 
-A-6: no fatality odds. Crew move through states
+Crew move through states
     SAFE -> EXPOSED -> EVACUATING -> EVACUATED | TRAPPED
-and accumulate exposure time plus a cumulative SMAC dose fraction. Nothing here
-computes P(death).
+and accumulate exposure time, SMAC dose, and an explicitly ASSUMED modeled
+survival estimate used for constrained resource comparisons.
 
 A module is hazardous when it is burning, when any species exceeds its 1-hour
 SMAC (JSC 20584 Rev C), or when smoke extinction passes the assumed egress
@@ -21,6 +21,11 @@ from collections import deque
 
 from spacecraft_sim import config
 from spacecraft_sim.models import Crew, Scenario
+from spacecraft_sim.mobility import (
+    connection_between,
+    consume_passage,
+    replenish_passage_credit,
+)
 
 
 # ── Movement graph (crew walk through open hatches only; IMV ducts are not
@@ -31,6 +36,8 @@ def _traversable(scenario: Scenario, module_id: str) -> list[str]:
     out = []
     for conn in scenario.connections_of(module_id):
         if conn.type != "hatch" or conn.path_state != "open":
+            continue
+        if conn.connectivity <= config.ASSUMED_HATCH_IMPASSABLE_CONNECTIVITY:
             continue
         other = conn.target if conn.source == module_id else conn.source
         if modules[module_id].isolated or modules[other].isolated:
@@ -72,6 +79,13 @@ def find_route(
     return None
 
 
+def find_evacuation_route(scenario: Scenario, start: str) -> list[str] | None:
+    """Honor a declared directional hatch target; otherwise use nearest safety."""
+    if scenario.escape_target_module_id:
+        return find_route(scenario, start, scenario.escape_target_module_id)
+    return find_route(scenario, start)
+
+
 def move_crew(scenario: Scenario, crew_id: str, target_module: str) -> None:
     """Explicit evacuation order: plan a route now; TRAPPED when none exists."""
     crew = scenario.crew_member(crew_id)
@@ -98,7 +112,23 @@ def _accumulate_dose(crew: Crew, scenario: Scenario, dt: float) -> None:
 
 def update_crew(scenario: Scenario, t: float, dt: float, response_seconds: float) -> None:
     """One step of exposure accumulation, state transitions, and movement."""
-    for crew in scenario.crew:
+    # Kept here (rather than in the engine) so direct library callers receive
+    # exactly the same throughput behavior as a full simulation step.
+    replenish_passage_credit(scenario, dt)
+    rank_crew_for_evacuation(scenario)
+    if scenario.escape_capacity_people is not None:
+        for candidate in scenario.crew:
+            if candidate.escape_seat_reserved is None:
+                candidate.escape_seat_reserved = (
+                    (candidate.evacuation_priority_rank or 10**9)
+                    <= scenario.escape_capacity_people
+                )
+    # Stable priority order decides who consumes a constrained hatch slot.
+    ordered_crew = sorted(
+        scenario.crew,
+        key=lambda crew: (-crew.evacuation_priority_score, crew.id),
+    )
+    for crew in ordered_crew:
         hazardous_here = module_is_hazardous(scenario, crew.module_id)
 
         if crew.state != "EVACUATED":
@@ -107,7 +137,15 @@ def update_crew(scenario: Scenario, t: float, dt: float, response_seconds: float
             crew.hazard_exposure_seconds += dt
 
         if crew.state == "SAFE":
-            if hazardous_here:
+            if scenario.escape_target_module_id and crew.module_id != scenario.escape_target_module_id:
+                route = find_evacuation_route(scenario, crew.module_id)
+                if route is None:
+                    crew.state = "TRAPPED"
+                else:
+                    crew.state = "EVACUATING"
+                    crew.route = route
+                    crew.hop_eta_seconds = config.ASSUMED_CREW_MOVE_SECONDS_PER_HOP
+            elif hazardous_here:
                 crew.state = "EXPOSED"
                 crew.exposed_at_seconds = t
 
@@ -115,7 +153,7 @@ def update_crew(scenario: Scenario, t: float, dt: float, response_seconds: float
             if crew.exposed_at_seconds is not None and (
                 t - crew.exposed_at_seconds >= response_seconds
             ):
-                route = find_route(scenario, crew.module_id)
+                route = find_evacuation_route(scenario, crew.module_id)
                 if route is None:
                     crew.state = "TRAPPED"
                 else:
@@ -131,6 +169,54 @@ def update_crew(scenario: Scenario, t: float, dt: float, response_seconds: float
             if crew.hop_eta_seconds <= 0:
                 next_module = crew.route[0]
                 if next_module in _traversable(scenario, crew.module_id):
+                    entering_refuge = (
+                        next_module == scenario.escape_target_module_id
+                        and crew.module_id == scenario.escape_from_module_id
+                    )
+                    if entering_refuge and crew.escape_seat_reserved is False:
+                        admitted = sum(
+                            1
+                            for candidate in scenario.crew
+                            if candidate.module_id == scenario.escape_target_module_id
+                            and candidate.id != crew.id
+                        )
+                        if admitted >= (scenario.escape_capacity_people or 0):
+                            crew.state = "TRAPPED"
+                            crew.route = []
+                            crew.escape_capacity_denied = True
+                            crew.waiting_for_connection_id = scenario.escape_target_connection_id
+                            # The refuge is now full. Seal the air path immediately;
+                            # power and water lines remain independent, per the
+                            # hatch/utility separation policy.
+                            if scenario.escape_target_connection_id:
+                                refuge_hatch = scenario.connection(
+                                    scenario.escape_target_connection_id
+                                )
+                                refuge_hatch.path_state = "closed"
+                                # A refuge seal is an explicit three-control
+                                # procedure: the hatch closes for air, while the
+                                # independently switchable power/water lines are
+                                # also turned off to stop scarce backup output
+                                # leaking back into the compromised staging side.
+                                refuge_hatch.power_line_on = False
+                                refuge_hatch.water_line_on = False
+                        else:
+                            crew.waiting_for_connection_id = scenario.escape_target_connection_id
+                            crew.hop_eta_seconds = 0.0
+                        continue
+                    connection = connection_between(
+                        scenario, crew.module_id, next_module
+                    )
+                    if connection is None:
+                        crew.waiting_for_connection_id = None
+                        continue
+                    if not consume_passage(
+                        scenario, connection, next_module, equipment=False
+                    ):
+                        crew.waiting_for_connection_id = connection.id
+                        crew.hop_eta_seconds = 0.0
+                        continue
+                    crew.waiting_for_connection_id = None
                     current_module = scenario.module(crew.module_id)
                     current_module.crew_ids = [
                         c for c in current_module.crew_ids if c != crew.id
@@ -146,7 +232,7 @@ def update_crew(scenario: Scenario, t: float, dt: float, response_seconds: float
                         else:
                             crew.state = "EVACUATED"
                 else:
-                    replan = find_route(scenario, crew.module_id)
+                    replan = find_evacuation_route(scenario, crew.module_id)
                     if replan is None:
                         crew.state = "TRAPPED"
                         crew.route = []
@@ -199,6 +285,126 @@ def crew_weight(
             )
         total += base * redundancy_factor * demand
     return total
+
+
+def rank_crew_for_evacuation(scenario: Scenario) -> list[Crew]:
+    """Rank passage order by urgency and function preservation, not identity."""
+    provider_counts: dict[str, int] = {}
+    for candidate in scenario.crew:
+        if candidate.abandoned:
+            continue
+        for function in functions_of(candidate):
+            provider_counts[function] = provider_counts.get(function, 0) + 1
+
+    for crew in scenario.crew:
+        reasons: list[str] = []
+        if crew.escape_capacity_denied:
+            crew.evacuation_priority_score = 0.0
+            crew.priority_reasons = ["refuge_capacity_denied_after_priority_selection"]
+            continue
+        if crew.abandoned:
+            crew.evacuation_priority_score = 0.0
+            crew.priority_reasons = ["explicitly_abandoned"]
+            continue
+        score = crew_weight(crew, scenario.crew, damaged_facilities=[]) * 20.0
+        if score:
+            reasons.append("mission_function_criticality")
+        unique = sum(
+            1 for function in functions_of(crew) if provider_counts.get(function) == 1
+        )
+        if unique:
+            score += unique * 12.0
+            reasons.append(f"{unique}_unique_function_provider")
+        if module_is_hazardous(scenario, crew.module_id):
+            score += 35.0
+            reasons.append("currently_in_hazard")
+        risk = max(0.0, 1.0 - crew.survival_probability)
+        if risk:
+            score += risk * 25.0
+            reasons.append("modeled_survival_risk")
+        crew.evacuation_priority_score = round(min(100.0, score), 3)
+        crew.priority_reasons = reasons or ["no_immediate_hazard"]
+
+    ranked = sorted(
+        (crew for crew in scenario.crew if not crew.abandoned),
+        key=lambda crew: (-crew.evacuation_priority_score, crew.id),
+    )
+    for rank, crew in enumerate(ranked, start=1):
+        crew.evacuation_priority_rank = rank
+    return ranked
+
+
+_EQUIPMENT_PRIORITY = {
+    "life_support": 38.0,
+    "oxygen_supply": 38.0,
+    "co2_removal": 36.0,
+    "power": 34.0,
+    "electrical_power": 34.0,
+    "propulsion": 30.0,
+    "return_capability": 32.0,
+    "gnc": 28.0,
+    "navigation": 28.0,
+    "medical": 26.0,
+    "fire_suppression": 25.0,
+    "communications": 22.0,
+    "science": 10.0,
+}
+
+
+def update_equipment_evacuation(scenario: Scenario) -> None:
+    """Use remaining hatch capacity for portable equipment, by mission impact."""
+    portable_items = []
+    for equipment in scenario.equipment:
+        reasons: list[str] = []
+        score = _EQUIPMENT_PRIORITY.get(equipment.system, 15.0)
+        if module_is_hazardous(scenario, equipment.module_id):
+            score += 25.0
+            reasons.append("currently_in_hazard")
+        if equipment.damaged:
+            score *= 0.25
+            reasons.append("already_damaged")
+        if not equipment.portable:
+            score = 0.0
+            reasons.append("fixed_equipment")
+        equipment.evacuation_priority_score = round(min(100.0, score), 3)
+        equipment.priority_reasons = reasons or ["mission_capability"]
+        if equipment.portable:
+            portable_items.append(equipment)
+
+    portable_items.sort(key=lambda item: (-item.evacuation_priority_score, item.id))
+    for rank, equipment in enumerate(portable_items, start=1):
+        equipment.evacuation_priority_rank = rank
+    candidates = [
+        equipment
+        for equipment in portable_items
+        if not equipment.evacuated and not equipment.damaged
+    ]
+    for equipment in candidates:
+        if not module_is_hazardous(scenario, equipment.module_id) and not equipment.evacuation_route:
+            continue
+        if not equipment.evacuation_route:
+            route = find_evacuation_route(scenario, equipment.module_id)
+            if not route:
+                continue
+            equipment.evacuation_route = route
+        next_module = equipment.evacuation_route[0]
+        connection = connection_between(scenario, equipment.module_id, next_module)
+        if connection is None or not consume_passage(
+            scenario,
+            connection,
+            next_module,
+            passage_units=equipment.passage_units,
+            equipment=True,
+        ):
+            continue
+        current = scenario.module(equipment.module_id)
+        current.equipment_ids = [item for item in current.equipment_ids if item != equipment.id]
+        equipment.module_id = next_module
+        scenario.module(next_module).equipment_ids.append(equipment.id)
+        equipment.evacuation_route = equipment.evacuation_route[1:]
+        equipment.evacuated = not equipment.evacuation_route and not module_is_hazardous(
+            scenario, equipment.module_id
+        )
 
 
 def critical_functions(
@@ -254,11 +460,7 @@ def measured_criticality(
 
     def capability_score(sc: Scenario) -> float:
         result = counterfactual(sc, action, horizon=horizon, dt=dt)
-        caps = result.summary["capabilities"]
-        weights = {"AVAILABLE": 1.0, "AT_RISK": 0.5, "UNAVAILABLE": 0.0}
-        if not caps:
-            return 0.0
-        return sum(weights[state] for state in caps.values()) / len(caps)
+        return float(result.summary["expected_returnees"])
 
     baseline = capability_score(scenario)
 

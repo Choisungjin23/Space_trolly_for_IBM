@@ -6,7 +6,7 @@
  * No duplicate spacecraft state inside React Flow.
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -44,8 +44,14 @@ export default function SpacecraftCanvas({
   selectedModuleId,
   selectedConnectionId,
 }: SpacecraftCanvasProps) {
-  const { scenario, updateModulePosition, addConnection, removeModule, removeConnection } =
+  const { scenario, updateModulePosition, addConnection, removeModule, removeConnection, advanceEmergencyVisual } =
     useScenarioStore()
+
+  useEffect(() => {
+    if (!scenario.emergency) return
+    const timer = window.setInterval(advanceEmergencyVisual, 1000)
+    return () => window.clearInterval(timer)
+  }, [scenario.emergency, advanceEmergencyVisual])
 
   // ── Derive React Flow nodes from scenario store ──────────────────────────
   const rfNodes: Node[] = useMemo(
@@ -72,9 +78,21 @@ export default function SpacecraftCanvas({
         target: conn.target,
         type: 'connectionEdge',
         selected: conn.id === selectedConnectionId,
-        data: { connection: conn } as ConnectionEdgeData,
+        data: {
+          connection: conn,
+          // A pathway that touches the burning module is how the hazard
+          // travels, so it is drawn hot. The rest of the chart stays cool.
+          touchesFire:
+            !!scenario.emergency &&
+            (conn.source === scenario.emergency.affectedModuleId ||
+              conn.target === scenario.emergency.affectedModuleId),
+          escapeTarget:
+            scenario.emergency?.escapeTarget?.connectionId === conn.id
+              ? scenario.emergency.escapeTarget
+              : undefined,
+        } as ConnectionEdgeData,
       })),
-    [scenario.connections, selectedConnectionId]
+    [scenario.connections, scenario.emergency, selectedConnectionId]
   )
 
   // ── React Flow state (local, position sync only) ─────────────────────────
@@ -158,7 +176,7 @@ export default function SpacecraftCanvas({
   )
 
   return (
-    <div style={{ width: '100%', height: '100%', background: '#0a0c10' }}>
+    <div style={{ width: '100%', height: '100%', background: 'var(--void)' }}>
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
@@ -180,7 +198,7 @@ export default function SpacecraftCanvas({
       >
         <Background
           variant={BackgroundVariant.Dots}
-          color="#1e2128"
+          color="var(--surface-3)"
           gap={20}
           size={1}
         />
@@ -188,8 +206,8 @@ export default function SpacecraftCanvas({
         <MiniMap
           nodeColor={(node) => {
             const data = node.data as ModuleNodeData
-            if (data?.emergency?.affectedModuleId === node.id) return '#ef4444'
-            return '#3b82f6'
+            if (data?.emergency?.affectedModuleId === node.id) return 'var(--ember)'
+            return 'var(--gold)'
           }}
           maskColor="rgba(10, 12, 16, 0.7)"
           style={{ bottom: 20, right: 20 }}
@@ -198,16 +216,16 @@ export default function SpacecraftCanvas({
           <Panel position="top-center">
             <div
               style={{
-                background: '#1e2128',
-                border: '1px solid #2a2d36',
+                background: 'var(--surface-3)',
+                border: '1px solid var(--line)',
                 borderRadius: 8,
                 padding: '12px 20px',
-                color: '#64748b',
+                color: 'var(--ink-3)',
                 fontSize: 13,
                 textAlign: 'center',
               }}
             >
-              Click <strong style={{ color: '#94a3b8' }}>+ Module</strong> to start building your spacecraft
+              Click <strong style={{ color: 'var(--ink-2)' }}>+ Module</strong> to start building your spacecraft
             </div>
           </Panel>
         )}

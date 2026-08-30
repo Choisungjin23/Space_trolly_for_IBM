@@ -5,18 +5,24 @@ import os
 from decimal import Decimal
 
 import pytest
+from pydantic import BaseModel
 
 from phase_c.llm import budget as budget_module
 
 
 @pytest.fixture
 def ledger(tmp_path, monkeypatch):
-    """A fresh ledger per test, with known prices."""
-    monkeypatch.setattr(budget_module, "DB_PATH", tmp_path / "b.sqlite3")
-    monkeypatch.setattr(budget_module, "BUDGET_USD", Decimal("100.00"))
-    monkeypatch.setattr(budget_module, "INPUT_PRICE_PER_1M", Decimal("0.20"))
-    monkeypatch.setattr(budget_module, "OUTPUT_PRICE_PER_1M", Decimal("0.20"))
-    monkeypatch.setattr(budget_module, "SAFETY_FACTOR", Decimal("1.10"))
+    """A fresh ledger per test, with known prices.
+
+    Set through the environment rather than module attributes, because the
+    guard reads every setting when it is used - that is what lets a value in
+    backend/.env take effect.
+    """
+    monkeypatch.setenv("IBM_BUDGET_DB", str(tmp_path / "b.sqlite3"))
+    monkeypatch.setenv("IBM_BUDGET_USD", "100.00")
+    monkeypatch.setenv("IBM_INPUT_PRICE_PER_1M", "0.20")
+    monkeypatch.setenv("IBM_OUTPUT_PRICE_PER_1M", "0.20")
+    monkeypatch.setenv("IBM_BUDGET_SAFETY_FACTOR", "1.10")
     return budget_module
 
 
@@ -53,7 +59,7 @@ def test_release_returns_the_reservation_unspent(ledger):
 
 
 def test_blocks_before_the_call_when_the_cap_would_break(ledger, monkeypatch):
-    monkeypatch.setattr(ledger, "BUDGET_USD", Decimal("0.01"))
+    monkeypatch.setenv("IBM_BUDGET_USD", "0.01")
     with pytest.raises(ledger.BudgetExceeded) as exc:
         ledger.reserve_budget("x" * 100_000, max_output_tokens=100_000)
     assert "BLOCKED" in str(exc.value)
@@ -70,7 +76,7 @@ def test_reservations_accumulate_until_settled(ledger):
 
 def test_zero_price_is_still_rejected(ledger, monkeypatch):
     """The original guard's safety property: never account a call as free."""
-    monkeypatch.setattr(ledger, "INPUT_PRICE_PER_1M", Decimal("0"))
+    monkeypatch.setenv("IBM_INPUT_PRICE_PER_1M", "0")
     with pytest.raises(RuntimeError, match="prices are not configured"):
         ledger.calculate_cost(10, 10)
 
@@ -78,6 +84,13 @@ def test_zero_price_is_still_rejected(ledger, monkeypatch):
 def test_default_price_matches_the_published_granite_rate():
     # 0.0002 USD per 1,000 tokens = 0.20 USD per 1,000,000.
     assert budget_module.DEFAULT_PRICE_PER_1M == "0.20"
+
+
+def test_the_cap_is_read_when_it_is_used_not_at_import(monkeypatch):
+    """backend/.env is loaded after this module is first imported, so a cap
+    captured at import time would silently ignore IBM_BUDGET_USD."""
+    monkeypatch.setenv("IBM_BUDGET_USD", "5.00")
+    assert budget_module.budget_usd() == Decimal("5.00")
 
 
 def test_korean_prompts_overestimate_conservatively(ledger):
@@ -89,17 +102,69 @@ def test_korean_prompts_overestimate_conservatively(ledger):
 
 # ── GraniteClient wiring ────────────────────────────────────────────────────
 
-def test_client_refuses_without_a_project_id(monkeypatch):
+@pytest.fixture
+def configured(monkeypatch):
+    """Every required watsonx value present, so a test can remove exactly one."""
+    monkeypatch.setenv("WATSONX_API_KEY", "k" * 20)
+    monkeypatch.setenv("WATSONX_PROJECT_ID", "proj-1")
+    monkeypatch.setenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
+    monkeypatch.setenv("WATSONX_MODEL_ID", "ibm/granite-4-h-small")
+    monkeypatch.delenv("WATSONX_APIKEY_FILE", raising=False)
+    return monkeypatch
+
+
+def test_client_refuses_without_a_project_id(configured):
     from phase_c.llm.base import LLMError
     from phase_c.llm.granite import GraniteClient
 
-    monkeypatch.setenv("WATSONX_API_KEY", "k" * 20)
-    monkeypatch.delenv("WATSONX_PROJECT_ID", raising=False)
+    configured.delenv("WATSONX_PROJECT_ID", raising=False)
     with pytest.raises(LLMError, match="WATSONX_PROJECT_ID"):
         GraniteClient()
 
 
-def test_client_reads_the_key_from_a_file_without_copying_it(tmp_path, monkeypatch):
+def test_client_refuses_without_a_model_id(configured):
+    """No default model: an unset WATSONX_MODEL_ID must fail rather than fall
+    back to whatever the code was last pinned to."""
+    from phase_c.llm.base import LLMError
+    from phase_c.llm.granite import GraniteClient
+
+    configured.delenv("WATSONX_MODEL_ID", raising=False)
+    with pytest.raises(LLMError, match="WATSONX_MODEL_ID"):
+        GraniteClient()
+
+
+def test_client_refuses_without_a_url(configured):
+    from phase_c.llm.base import LLMError
+    from phase_c.llm.granite import GraniteClient
+
+    configured.delenv("WATSONX_URL", raising=False)
+    with pytest.raises(LLMError, match="WATSONX_URL"):
+        GraniteClient()
+
+
+def test_client_refuses_unedited_example_placeholders(configured):
+    from phase_c.llm.base import LLMError
+    from phase_c.llm.granite import GraniteClient
+
+    configured.setenv("WATSONX_URL", "https://YOUR_REGION.ml.cloud.ibm.com")
+    with pytest.raises(LLMError, match="WATSONX_URL"):
+        GraniteClient()
+
+
+def test_client_takes_region_and_model_from_the_environment(configured):
+    from phase_c.llm.granite import GraniteClient
+
+    configured.setenv("WATSONX_URL", "https://eu-de.ml.cloud.ibm.com")
+    configured.setenv("WATSONX_MODEL_ID", "ibm/some-other-model")
+
+    client = GraniteClient()
+
+    assert client.model_id == "ibm/some-other-model"
+    assert client.url == "https://eu-de.ml.cloud.ibm.com"
+    assert client.config.region == "eu-de"
+
+
+def test_client_reads_the_key_from_a_file_without_copying_it(tmp_path, configured):
     import json
 
     from phase_c.llm.granite import GraniteClient
@@ -107,12 +172,11 @@ def test_client_reads_the_key_from_a_file_without_copying_it(tmp_path, monkeypat
     key_file = tmp_path / "apikey.json"
     key_file.write_text(json.dumps({"name": "x", "apikey": "SECRET-VALUE"}), "utf-8")
 
-    monkeypatch.delenv("WATSONX_API_KEY", raising=False)
-    monkeypatch.setenv("WATSONX_APIKEY_FILE", str(key_file))
-    monkeypatch.setenv("WATSONX_PROJECT_ID", "proj-1")
+    configured.delenv("WATSONX_API_KEY", raising=False)
+    configured.setenv("WATSONX_APIKEY_FILE", str(key_file))
 
     client = GraniteClient()
-    assert client.api_key == "SECRET-VALUE"
+    assert client.config.api_key == "SECRET-VALUE"
     # The key must not have been written anywhere in the project.
     assert not any(
         "SECRET-VALUE" in p.read_text("utf-8", errors="ignore")
@@ -121,28 +185,105 @@ def test_client_reads_the_key_from_a_file_without_copying_it(tmp_path, monkeypat
     )
 
 
-def test_client_reports_a_missing_key_file(tmp_path, monkeypatch):
+def test_client_reports_a_missing_key_file(tmp_path, configured):
     from phase_c.llm.base import LLMError
     from phase_c.llm.granite import GraniteClient
 
-    monkeypatch.delenv("WATSONX_API_KEY", raising=False)
-    monkeypatch.setenv("WATSONX_APIKEY_FILE", str(tmp_path / "nope.json"))
-    monkeypatch.setenv("WATSONX_PROJECT_ID", "proj-1")
+    configured.delenv("WATSONX_API_KEY", raising=False)
+    configured.setenv("WATSONX_APIKEY_FILE", str(tmp_path / "nope.json"))
     with pytest.raises(LLMError, match="missing file"):
         GraniteClient()
 
 
-def test_usage_extraction_from_a_watsonx_response():
+def test_usage_extraction_from_a_watsonx_chat_response():
     from phase_c.llm.granite import GraniteClient
 
     response = {
-        "results": [
-            {
-                "generated_text": '{"status": "ok"}',
-                "input_token_count": 123,
-                "generated_token_count": 45,
-            }
-        ]
+        "choices": [{"message": {"content": '{"status": "ok"}'}}],
+        "usage": {"prompt_tokens": 123, "completion_tokens": 45, "total_tokens": 168},
     }
     assert GraniteClient._usage(response) == (123, 45)
+    assert GraniteClient._text(response) == '{"status": "ok"}'
+    # An empty reply must settle as unknown usage, not as a free call.
     assert GraniteClient._usage({}) == (None, None)
+    assert GraniteClient._text({}) == ""
+
+
+# ── Truncated replies ───────────────────────────────────────────────────────
+
+def _chat_response(text: str, finish_reason: str = "stop") -> dict:
+    return {
+        "choices": [{"message": {"content": text}, "finish_reason": finish_reason}],
+        "usage": {"prompt_tokens": 100, "completion_tokens": 50},
+    }
+
+
+class _Reply(BaseModel):
+    status: str
+
+
+def test_truncation_is_detected_from_the_finish_reason():
+    from phase_c.llm.granite import GraniteClient
+
+    assert GraniteClient._was_truncated(_chat_response("{", "length")) is True
+    assert GraniteClient._was_truncated(_chat_response("{}", "stop")) is False
+    assert GraniteClient._was_truncated({}) is False
+
+
+def test_a_truncated_reply_retries_with_more_room(ledger, configured):
+    """Repeating a cut-off request verbatim cuts at the same place and bills
+    twice for the same failure, so the retry must be given room to finish."""
+    from phase_c.llm.granite import GraniteClient
+
+    caps: list[int] = []
+
+    class Model:
+        def chat(self, *, messages, params):
+            caps.append(params["max_tokens"])
+            if len(caps) == 1:
+                return _chat_response('{"status": "o', "length")
+            return _chat_response('{"status": "ok"}', "stop")
+
+    client = GraniteClient(max_new_tokens=100, retries=1)
+    client._model = Model()
+
+    result = client.complete(system="AGENT: t", user="go", schema=_Reply)
+
+    assert result.status == "ok"
+    assert caps == [100, 200], "the retry should double the allowance"
+
+
+def test_persistent_truncation_says_so_plainly(ledger, configured):
+    from phase_c.llm.base import LLMError
+    from phase_c.llm.granite import GraniteClient
+
+    class Model:
+        def chat(self, *, messages, params):
+            return _chat_response('{"status": "o', "length")
+
+    client = GraniteClient(max_new_tokens=100, retries=1)
+    client._model = Model()
+
+    with pytest.raises(LLMError, match="ran out of output room"):
+        client.complete(system="AGENT: t", user="go", schema=_Reply)
+
+
+def test_a_malformed_but_complete_reply_does_not_grow_the_allowance(ledger, configured):
+    """Only truncation justifies spending more; a model that misread the schema
+    will misread it again at twice the size."""
+    from phase_c.llm.base import LLMError
+    from phase_c.llm.granite import GraniteClient
+
+    caps: list[int] = []
+
+    class Model:
+        def chat(self, *, messages, params):
+            caps.append(params["max_tokens"])
+            return _chat_response("not json at all", "stop")
+
+    client = GraniteClient(max_new_tokens=100, retries=1)
+    client._model = Model()
+
+    with pytest.raises(LLMError, match="never matched"):
+        client.complete(system="AGENT: t", user="go", schema=_Reply)
+    assert caps == [100, 100]

@@ -18,6 +18,7 @@ from app.api.schemas import (
     ConnectionIn,
     CrewMemberIn,
     EmergencyConfigIn,
+    EscapeTargetIn,
     EquipmentIn,
     ModuleIn,
     ScenarioIn,
@@ -88,10 +89,10 @@ def test_translation_carries_graph_crew_and_equipment(demo):
 
     assert {m.id for m in pa.modules} == set(scenario.modules)
     assert {c.id for c in pa.connections} == set(scenario.connections)
-    assert len(pa.crew) == 4
+    assert len(pa.crew) == 10
     assert len(pa.equipment) == 11
 
-    fire = pa.module("mod-storage")
+    fire = pa.module("mod-habitat")
     assert fire.fire_state == "sustained"
     assert fire.detected is True  # emergency.detected -> alarm already sounded
 
@@ -99,13 +100,30 @@ def test_translation_carries_graph_crew_and_equipment(demo):
     assert set(engineer.provides_functions) == {"life_support_ops", "repair", "power_ops"}
 
 
+def test_translation_carries_directional_escape_target(demo):
+    scenario, emergency = demo
+    emergency.escapeTarget = EscapeTargetIn(
+        connectionId="conn-storage2-ls2",
+        fromModuleId="mod-storage-2",
+        toModuleId="mod-life-support-2",
+        selection="recommended",
+        maxOccupants=9,
+    )
+    pa = to_phase_a_scenario(scenario, emergency)
+    assert pa.escape_target_connection_id == "conn-storage2-ls2"
+    assert pa.escape_from_module_id == "mod-storage-2"
+    assert pa.escape_target_module_id == "mod-life-support-2"
+    assert pa.escape_capacity_people == 9
+
+
 def test_transfer_class_scales_connection_flow(demo):
     scenario, emergency = demo
     pa = to_phase_a_scenario(scenario, emergency)
-    # Demo: conn-stor-ls is an IMV with transferClass=high -> full IMV flow.
-    imv = pa.connection("conn-stor-ls")
+    # The former Storage/Life Support ventilation link is now an ordinary hatch.
+    ordinary_hatch = pa.connection("conn-stor-ls")
     hatch_medium = pa.connection("conn-ls-pwr")  # hatch, medium
-    assert imv.nominal_flow_m3_s() == pytest.approx(0.0708)
+    assert ordinary_hatch.type == "hatch"
+    assert ordinary_hatch.nominal_flow_m3_s() == pytest.approx(0.010)
     assert hatch_medium.nominal_flow_m3_s() == pytest.approx(0.010 * 0.66)
 
 
@@ -116,15 +134,38 @@ def test_failed_equipment_translates_to_damaged():
     assert pa.equipment[0].damaged is True
 
 
+def test_fire_rolls_adjacent_connectivity_between_one_and_fifty():
+    scenario, emergency = make_two_module()
+    pa = to_phase_a_scenario(scenario, emergency)
+    assert 1 <= pa.connection("c1").connectivity <= 50
+
+
+def test_electronic_short_reduces_power_passage_without_starting_fire():
+    scenario, _ = make_two_module()
+    emergency = EmergencyConfigIn(
+        type="electronic_short", affectedModuleId="alpha", detected=True
+    )
+    pa = to_phase_a_scenario(scenario, emergency)
+    assert pa.module("alpha").electrical_short is True
+    assert pa.module("alpha").fire_state == "non"
+    assert 0.05 <= pa.connection("c1").power_transfer_factor <= 0.20
+    assert "shutdown_power_line_c1" in {
+        action.id for action in generate_actions(scenario, emergency)
+    }
+    response = simulate(scenario, emergency, ["do_nothing"], runs=1, seed=42)
+    outcome = response.results[0].connectivity.byConnectionId["c1"]
+    assert outcome.powerTransferPercent <= 20
+
+
 # ── Action mapping ──────────────────────────────────────────────────────────
 
 def test_actions_use_phase_b_id_vocabulary(demo):
     scenario, emergency = demo
     ids = {a.id for a in generate_actions(scenario, emergency)}
     assert "do_nothing" in ids
-    assert "isolate_module_mod-storage" in ids
+    assert "isolate_module_mod-habitat" in ids
     assert "close_conn_conn-hab-stor" in ids
-    assert "shutdown_vent_conn-stor-ls" in ids
+    assert "shutdown_vent_conn-hab-ls" in ids
     # No raw Phase A ids leak through.
     assert not any(":" in action_id for action_id in ids)
 
@@ -134,7 +175,11 @@ def test_operations_stay_within_frontend_enum(demo):
     allowed = {
         "close_connection",
         "isolate_module",
-        "shutdown_ventilation",
+            "shutdown_ventilation",
+            "shutdown_power_line",
+            "shutdown_air_line",
+            "shutdown_water_line",
+            "abandon_module",
         "evacuate_crew",
         "power_down_equipment",
         "do_nothing",
@@ -165,27 +210,30 @@ def test_simulate_produces_engine_backed_results(demo):
 def test_isolation_contains_and_do_nothing_spreads(demo):
     scenario, emergency = demo
     response = simulate(
-        scenario, emergency, ["do_nothing", "isolate_module_mod-storage"], RUNS, SEED
+        scenario, emergency, ["do_nothing", "isolate_module_mod-habitat"], RUNS, SEED
     )
     by_id = {r.actionId: r for r in response.results}
 
     spread = by_id["do_nothing"].hazard.modulesReachedIds
-    contained = by_id["isolate_module_mod-storage"].hazard.modulesReachedIds
-    assert len(contained) < len(spread)
-    assert contained == ["mod-storage"]
+    contained = by_id["isolate_module_mod-habitat"].hazard.modulesReachedIds
+    assert set(contained).issubset(spread)
+    assert contained == []
 
 
 def test_capabilities_track_hazard_reach(demo):
-    # "habitation" is provided by equipment in Habitat and Life Support. Under
-    # do_nothing the smoke reaches both, so every provider is exposed ->
-    # degraded; isolating the fire keeps the providers clean -> available.
+    # Redundant habitation remains available because Life Support stays clean
+    # even while the Habitat provider is exposed.
     scenario, emergency = demo
     response = simulate(
-        scenario, emergency, ["do_nothing", "isolate_module_mod-storage"], RUNS, SEED
+        scenario, emergency, ["do_nothing", "isolate_module_mod-habitat"], RUNS, SEED
     )
     by_id = {r.actionId: r.capabilities.byCapability for r in response.results}
-    assert by_id["do_nothing"]["habitation"] == "degraded"
-    assert by_id["isolate_module_mod-storage"]["habitation"] == "available"
+    assert by_id["do_nothing"]["habitation"] == "available"
+    assert by_id["isolate_module_mod-habitat"]["habitation"] == "available"
+    # These capabilities now come from enabled source modules rather than
+    # equipment capability tags.
+    assert by_id["isolate_module_mod-habitat"]["oxygen_supply"] == "available"
+    assert by_id["isolate_module_mod-habitat"]["electrical_power"] == "available"
 
 
 def test_critical_functions_derive_from_declared_lists(demo):
@@ -194,8 +242,8 @@ def test_critical_functions_derive_from_declared_lists(demo):
     functions = response.results[0].criticalFunctions.byFunction
     # Only Engineer Park declares life_support_ops in the demo fixture.
     assert functions["life_support_ops"].totalProviders == 1
-    # navigation is declared by two crew members (commander + pilot).
-    assert functions["navigation"].totalProviders == 2
+    # navigation is declared by commander, pilot and return specialist.
+    assert functions["navigation"].totalProviders == 3
 
 
 def test_trajectory_reports_real_detection_event():

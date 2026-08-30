@@ -8,13 +8,14 @@ cannot race past the limit.
 
 Two changes from the original:
 
-1. Prices default to the published rate for granite-3-8b-instruct
-   ($0.0002 per 1,000 tokens, input and output alike, since watsonx bills both
-   as Resource Units) instead of 0. The original refused to run until prices
-   were set by hand; the check that rejects a zero or negative price is kept,
-   so an explicit 0 still fails loudly.
+1. Prices default to the published watsonx Resource Unit rate ($0.0002 per
+   1,000 tokens, input and output alike) instead of 0. The original refused to
+   run until prices were set by hand; the check that rejects a zero or negative
+   price is kept, so an explicit 0 still fails loudly.
 2. The database path is configurable via IBM_BUDGET_DB, so the ledger does not
    land inside an installed package directory.
+3. Every setting is read when it is used, not when this module is imported, so
+   a backend/.env loaded during application startup is honoured.
 
 This is an application-side guard, NOT an IBM Cloud billing hard-stop.
 """
@@ -26,24 +27,38 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
-# ── Hard limit ──────────────────────────────────────────────────────────────
+# ── Settings ──────────────────────────────────────────────────────
 
-BUDGET_USD = Decimal(os.getenv("IBM_BUDGET_USD", "100.00"))
-
-# Published rate for ibm/granite-3-8b-instruct: 0.0002 USD per Resource Unit,
-# where 1 RU = 1,000 tokens counting input and output together. That is
-# 0.20 USD per 1,000,000 tokens on each side.
+# watsonx bills 0.0002 USD per Resource Unit, where 1 RU = 1,000 tokens
+# counting input and output alike. That is 0.20 USD per 1,000,000 tokens.
 DEFAULT_PRICE_PER_1M = "0.20"
+DEFAULT_BUDGET_USD = "100.00"
+DEFAULT_SAFETY_FACTOR = "1.10"
 
-INPUT_PRICE_PER_1M = Decimal(os.getenv("IBM_INPUT_PRICE_PER_1M", DEFAULT_PRICE_PER_1M))
-OUTPUT_PRICE_PER_1M = Decimal(os.getenv("IBM_OUTPUT_PRICE_PER_1M", DEFAULT_PRICE_PER_1M))
 
-# Conservative safety margin on every estimate.
-SAFETY_FACTOR = Decimal(os.getenv("IBM_BUDGET_SAFETY_FACTOR", "1.10"))
+def budget_usd() -> Decimal:
+    """The hard spend cap, normally set by IBM_BUDGET_USD in backend/.env."""
+    return Decimal(os.getenv("IBM_BUDGET_USD", DEFAULT_BUDGET_USD))
 
-DB_PATH = Path(
-    os.getenv("IBM_BUDGET_DB", Path.home() / ".phase_c_ibm_budget.sqlite3")
-)
+
+def input_price_per_1m() -> Decimal:
+    return Decimal(os.getenv("IBM_INPUT_PRICE_PER_1M", DEFAULT_PRICE_PER_1M))
+
+
+def output_price_per_1m() -> Decimal:
+    return Decimal(os.getenv("IBM_OUTPUT_PRICE_PER_1M", DEFAULT_PRICE_PER_1M))
+
+
+def safety_factor() -> Decimal:
+    """Conservative margin applied to every estimate."""
+    return Decimal(os.getenv("IBM_BUDGET_SAFETY_FACTOR", DEFAULT_SAFETY_FACTOR))
+
+
+def db_path() -> Path:
+    return Path(
+        os.getenv("IBM_BUDGET_DB", Path.home() / ".phase_c_ibm_budget.sqlite3")
+    )
+
 
 _LOCK = threading.Lock()
 
@@ -53,7 +68,7 @@ class BudgetExceeded(RuntimeError):
 
 
 def _validate_prices() -> None:
-    if INPUT_PRICE_PER_1M <= 0 or OUTPUT_PRICE_PER_1M <= 0:
+    if input_price_per_1m() <= 0 or output_price_per_1m() <= 0:
         raise RuntimeError(
             "IBM model token prices are not configured.\n\n"
             "Set them before running:\n"
@@ -64,8 +79,9 @@ def _validate_prices() -> None:
 
 
 def _connect() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=30)
+    path = db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path, timeout=30)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS budget (
@@ -85,9 +101,9 @@ def _connect() -> sqlite3.Connection:
 def calculate_cost(input_tokens: int, output_tokens: int) -> Decimal:
     """Estimated cost including the configured safety factor."""
     _validate_prices()
-    input_cost = Decimal(input_tokens) / Decimal("1000000") * INPUT_PRICE_PER_1M
-    output_cost = Decimal(output_tokens) / Decimal("1000000") * OUTPUT_PRICE_PER_1M
-    return (input_cost + output_cost) * SAFETY_FACTOR
+    input_cost = Decimal(input_tokens) / Decimal("1000000") * input_price_per_1m()
+    output_cost = Decimal(output_tokens) / Decimal("1000000") * output_price_per_1m()
+    return (input_cost + output_cost) * safety_factor()
 
 
 def conservative_input_token_estimate(text: str) -> int:
@@ -109,11 +125,12 @@ def get_budget_status() -> dict:
 
     spent = Decimal(str(spent_usd))
     reserved = Decimal(str(reserved_usd))
+    cap = budget_usd()
     return {
-        "budget_usd": float(BUDGET_USD),
+        "budget_usd": float(cap),
         "spent_usd": float(spent),
         "reserved_usd": float(reserved),
-        "remaining_usd": float(max(Decimal("0"), BUDGET_USD - spent - reserved)),
+        "remaining_usd": float(max(Decimal("0"), cap - spent - reserved)),
     }
 
 
@@ -138,10 +155,11 @@ def reserve_budget(prompt: str, max_output_tokens: int) -> Decimal:
             spent = Decimal(str(spent_usd))
             reserved = Decimal(str(reserved_usd))
             projected = spent + reserved + maximum_cost
+            cap = budget_usd()
 
-            if projected > BUDGET_USD:
+            if projected > cap:
                 raise BudgetExceeded(
-                    f"IBM API BLOCKED: ${BUDGET_USD:.2f} budget limit would be exceeded.\n"
+                    f"IBM API BLOCKED: ${cap:.2f} budget limit would be exceeded.\n"
                     f"Spent:     ${spent:.4f}\n"
                     f"Reserved:  ${reserved:.4f}\n"
                     f"New max:   ${maximum_cost:.4f}\n"

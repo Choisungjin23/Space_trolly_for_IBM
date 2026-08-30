@@ -47,10 +47,12 @@ from phase_c.contracts.analysis import (
     CaseAnalysis,
     CrewCriticality,
     CrewOutcome,
+    ConnectivityOutcome,
     Detection,
     EquipmentOutcome,
     Hazard,
     Provenance,
+    ResourceOutcome,
     SampledOutcome,
 )
 from phase_c.timeline.events import extract_events
@@ -151,6 +153,15 @@ class PhaseASimulationAdapter:
                 exposure_seconds=info["exposure_seconds"],
                 smac_dose_fraction=info["smac_dose_fraction"],
                 module=info["module"],
+                survival_probability=info["survival_probability"],
+                return_probability=info["return_probability"],
+                abandoned=info["abandoned"],
+                priority_score=info.get("priority_score", 0.0),
+                priority_rank=info.get("priority_rank"),
+                priority_reasons=info.get("priority_reasons", []),
+                waiting_for_connection_id=info.get("waiting_for_connection_id"),
+                estimated_survival_minutes=info.get("estimated_survival_minutes"),
+                resource_risk_reasons=info.get("resource_risk_reasons", []),
             )
             for crew_id, info in summary.get("crew", {}).items()
         }
@@ -164,6 +175,12 @@ class PhaseASimulationAdapter:
                 powered=item.powered,
                 damaged=item.damaged,
                 repair_progress_seconds=item.repair_progress_seconds,
+                portable=item.portable,
+                passage_units=item.passage_units,
+                priority_score=item.evacuation_priority_score,
+                priority_rank=item.evacuation_priority_rank,
+                priority_reasons=list(item.priority_reasons),
+                evacuated=item.evacuated,
             )
             for item in (final.equipment if final else [])
         }
@@ -193,9 +210,20 @@ class PhaseASimulationAdapter:
             hazard=hazard,
             crew=crew,
             crew_counts=dict(summary.get("crew_counts", {})),
+            resources={
+                module_id: ResourceOutcome.model_validate(values)
+                for module_id, values in summary.get("resources", {}).items()
+            },
+            expected_survivors=summary.get("expected_survivors", 0.0),
+            expected_returnees=summary.get("expected_returnees", 0.0),
             systems=dict(summary.get("systems", {})),
             system_reasons=dict(summary.get("system_reasons", {})),
             equipment=equipment,
+            connectivity={
+                connection_id: ConnectivityOutcome.model_validate(values)
+                for connection_id, values in summary.get("connectivity", {}).items()
+            },
+            escape_target=summary.get("escape_target"),
             capabilities=dict(summary.get("capabilities", {})),
             critical_functions=list(summary.get("critical_functions", [])),
             events=events,
@@ -246,6 +274,8 @@ class PhaseASimulationAdapter:
             means={
                 "total_exposure_seconds": distribution.mean_total_exposure_seconds,
                 "peak_smac_dose": distribution.mean_peak_smac_dose,
+                "expected_survivors": distribution.mean_expected_survivors,
+                "expected_returnees": distribution.mean_expected_returnees,
             },
             notes=list(distribution.notes),
         )

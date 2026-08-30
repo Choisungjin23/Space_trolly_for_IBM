@@ -27,7 +27,8 @@ Rules:
    nothing about this simulation run.
 4. If the sources do not address the question, say so in `claim` and set
    `applicability` to explain the gap. Do not fill it in from memory.
-5. No fatality, lethality, or survival-probability language.
+5. Survival or mortality evidence must be used only when the retrieved source
+   supports it; distinguish evidence from the engine's modeled estimate.
 """
 
 

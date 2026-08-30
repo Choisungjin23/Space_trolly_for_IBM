@@ -26,7 +26,11 @@ export interface ActionOperation {
   type:
     | 'close_connection'
     | 'isolate_module'
+    | 'abandon_module'
     | 'shutdown_ventilation'
+    | 'shutdown_power_line'
+    | 'shutdown_air_line'
+    | 'shutdown_water_line'
     | 'evacuate_crew'
     | 'power_down_equipment'
     | 'do_nothing'
@@ -52,6 +56,16 @@ export interface HazardOutcome {
 export interface CrewMemberOutcome {
   status: string
   exposureExampleSeconds: number
+  survivalProbability: number
+  returnProbability: number
+  abandoned: boolean
+  priorityScore: number
+  priorityRank?: number | null
+  priorityReasons: string[]
+  waitingForConnectionId?: string | null
+  escapeCapacityDenied?: boolean
+  estimatedSurvivalMinutes?: number | null
+  resourceRiskReasons: string[]
 }
 
 export interface CrewOutcomeSummary {
@@ -64,6 +78,11 @@ export interface CrewOutcomeSummary {
 export interface EquipmentItemOutcome {
   name: string
   state: string
+  portable: boolean
+  priorityScore: number
+  priorityRank?: number | null
+  priorityReasons: string[]
+  evacuated: boolean
 }
 
 export interface EquipmentOutcomeSummary {
@@ -84,6 +103,34 @@ export interface CriticalFunctionEntry {
 
 export interface CriticalFunctionSummary {
   byFunction: Record<string, CriticalFunctionEntry>
+}
+
+export interface ModuleResourceOutcome {
+  powerLevelW: number
+  powerDemandW: number
+  powerSufficient: boolean
+  airLevelPercent: number
+  waterStoredKg: number
+  waterDemandKgPerMin: number
+  waterSufficient: boolean
+}
+
+export interface ResourceOutcomeSummary {
+  byModuleId: Record<string, ModuleResourceOutcome>
+}
+
+export interface ConnectionConnectivityOutcome {
+  connectivity: number
+  baseConnectivity: number
+  crewThroughputPerMin: number
+  airThroughputPercentPerMin: number
+  crewPassages: number
+  equipmentPassageUnits: number
+  powerTransferPercent: number
+}
+
+export interface ConnectivityOutcomeSummary {
+  byConnectionId: Record<string, ConnectionConnectivityOutcome>
 }
 
 export interface UncertaintySummary {
@@ -109,6 +156,10 @@ export interface ActionSimulationResult {
   equipment: EquipmentOutcomeSummary
   capabilities: CapabilityOutcomeSummary
   criticalFunctions: CriticalFunctionSummary
+  resources: ResourceOutcomeSummary
+  connectivity: ConnectivityOutcomeSummary
+  expectedSurvivors: number
+  expectedReturnees: number
   uncertaintySummary?: UncertaintySummary
   exampleTrajectory?: ExampleTrajectory
 }

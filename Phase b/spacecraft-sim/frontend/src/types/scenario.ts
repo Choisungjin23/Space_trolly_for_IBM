@@ -24,6 +24,19 @@ export interface ScenarioModule {
   type: ModuleType
   pressure?: number | null
   oxygenFraction?: number | null
+  powerLevelW: number
+  powerConsumptionW: number
+  maxPowerOutputW: number
+  waterStoredKg: number
+  waterCapacityKg: number
+  suppliesAir: boolean
+  suppliesWater: boolean
+  maxAirOutputPercentPerMin: number
+  maxWaterOutputKgPerMin: number
+  waterRecoveryEfficiency: number
+  /** Preserve deliberately constrained source values during automatic sizing. */
+  sourceSizingLocked?: boolean
+  disruptionLevel: number
   crew: CrewMember[]
   equipment: Equipment[]
   position: { x: number; y: number }
@@ -50,6 +63,9 @@ export interface Equipment {
   type: string
   state: EquipmentState
   providesCapabilities: string[]
+  powerConsumptionW: number
+  portable: boolean
+  passageUnits: number
 }
 
 export type EquipmentState =
@@ -67,6 +83,12 @@ export interface ScenarioConnection {
   ventilationOn: boolean
   flowDirection: FlowDirection
   transferClass: TransferClass
+  powerLineOn: boolean
+  airLineOn: boolean
+  waterLineOn: boolean
+  baseConnectivity: number
+  connectivity: number
+  powerTransferFactor: number
 }
 
 export type ConnectionType = 'hatch' | 'imv' | 'leak' | 'other'
@@ -80,8 +102,17 @@ export type FlowDirection =
 export type TransferClass = 'none' | 'low' | 'medium' | 'high' | 'unknown'
 
 export interface EmergencyConfig {
-  type: 'fire'
+  type: 'fire' | 'electronic_short'
   affectedModuleId: string
   detected: boolean
   sourceProfileId?: string | null
+  escapeTarget?: EscapeTarget | null
+}
+
+export interface EscapeTarget {
+  connectionId: string
+  fromModuleId: string
+  toModuleId: string
+  selection: 'recommended' | 'manual'
+  maxOccupants?: number | null
 }

@@ -142,23 +142,27 @@ def test_r3_allows_k_of_n_phrasing(case):
     assert validate_finding(finding, registry) == []
 
 
-def test_r4_fatality_language_is_blocked(case):
+def test_modeled_survival_probability_is_allowed_when_grounded(case):
     registry = FactRegistry.from_case(case)
     finding = AgentFinding(
         agent="crew_safety",
-        claims=[Claim(statement="Crew survival probability is high.", basis="INFERENCE")],
+        claims=[Claim(
+            statement="C1 modeled survival probability is 1.",
+            basis="SIMULATION_FACT",
+            refs=["/actions/0/crew/C1/survival_probability"],
+        )],
     )
-    assert "R4_fatality_language" in rules(validate_finding(finding, registry))
+    assert validate_finding(finding, registry) == []
 
 
-def test_r4_scans_concerns_too(case):
+def test_fatality_language_is_not_blanket_blocked(case):
     registry = FactRegistry.from_case(case)
     finding = AgentFinding(
         agent="crew_safety",
         claims=[],
         concerns=["Delay raises the risk of crew deaths."],
     )
-    assert "R4_fatality_language" in rules(validate_finding(finding, registry))
+    assert validate_finding(finding, registry) == []
 
 
 def test_r5_best_action_only_from_coordinator(case):
@@ -206,3 +210,64 @@ def test_recommendation_must_leave_the_human_in_charge(case):
     registry = FactRegistry.from_case(case)
     rec = sound_recommendation().model_copy(update={"human_decision_required": False})
     assert "R8_human_not_final" in rules(validate_recommendation(rec, registry))
+
+
+# ── The registry must match the tree the agent was shown ────────────────────
+
+def test_a_specialist_is_checked_against_its_own_projection(case, focus):
+    """Every agent sees a different projection, and house rule 7 tells it to
+    cite into that. Checking those citations against the whole case, or against
+    the raw action, marks sound work unreferenced - and a wall of false
+    violations hides the real ones."""
+    from phase_c.agents.mission import MissionAgent
+    from phase_c.agents.systems import SystemsAgent
+    from phase_c.grounding.registry import FactRegistry
+
+    mission = FactRegistry.from_payload(MissionAgent(None).project(focus, case))
+    systems = FactRegistry.from_payload(SystemsAgent(None).project(focus, case))
+
+    # Shapes only these projections have.
+    assert mission.resolves("/capability_names_declared_by_scenario")
+    assert systems.resolves("/equipment")
+
+    # The case-wide tree resolves neither, which is what used to be used.
+    whole_case = FactRegistry.from_case(case)
+    assert not whole_case.resolves("/capability_names_declared_by_scenario")
+    assert not whole_case.resolves("/equipment")
+
+
+def test_an_empty_container_is_still_citable():
+    """Phase B declares no systems, so `/systems` arrives empty. "No systems
+    are declared" is a true statement about the data and the registry knows it
+    (`/systems#count` is 0); requiring a child would reject exactly the claims
+    that report an absence."""
+    from phase_c.grounding.registry import FactRegistry
+
+    registry = FactRegistry.from_payload(
+        {"systems": {}, "system_reasons": {}, "crew": {"c1": {"state": "SAFE"}}}
+    )
+
+    assert registry.resolves("/systems")
+    assert registry.resolves("/system_reasons")
+    assert registry.resolves("/crew")
+    assert not registry.resolves("/systems_typo")
+
+
+def test_a_container_with_children_resolves(focus):
+    from phase_c.grounding.registry import FactRegistry
+
+    registry = FactRegistry.from_action(focus)
+    assert registry.resolves("/hazard/reached_modules")
+    assert registry.resolves("/hazard")
+
+
+def test_an_invented_pointer_still_fails(focus):
+    """The loosening must not make fabrication citable."""
+    from phase_c.grounding.registry import FactRegistry
+
+    registry = FactRegistry.from_action(focus)
+    assert not registry.resolves("/hazard/made_up_field")
+    assert not registry.resolves("/crew/nobody/state")
+    assert not registry.resolves("/totally/invented")
+    # A near-miss on a real key is still a miss.
+    assert not registry.resolves("/hazard/sm_ac_exceeded_modules")

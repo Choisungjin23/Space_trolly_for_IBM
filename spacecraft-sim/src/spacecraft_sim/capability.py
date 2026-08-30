@@ -81,7 +81,9 @@ def update_repairs(scenario: Scenario, dt: float) -> None:
         if module_is_hazardous(scenario, equipment.module_id):
             continue  # nobody works a repair inside smoke or fire
 
-        function = repair_function_for.get(equipment.system, "repair")
+        function = repair_function_for.get(
+            equipment.system, config.DEFAULT_REPAIR_FUNCTION
+        )
         if not working_providers_in(scenario, function, equipment.module_id):
             continue
 
@@ -115,6 +117,8 @@ def evaluate_systems(scenario: Scenario) -> dict[str, str]:
             state, reason = "FAILED_EXPLICITLY", "equipment_damaged"
         elif any(m.isolated for m in dep_modules):
             state, reason = "UNAVAILABLE", "module_isolated"
+        elif any(not m.power_sufficient for m in dep_modules):
+            state, reason = "UNAVAILABLE", "insufficient_module_power"
         elif any(not e.powered for e in dep_equipment):
             state, reason = "UNAVAILABLE", "equipment_powered_down"
         elif operators is not None and not operators:

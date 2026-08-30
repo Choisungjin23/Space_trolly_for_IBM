@@ -1,6 +1,6 @@
 {
   "id": "five-module-demo",
-  "name": "5-Module Spacecraft Fire Demo",
+  "name": "Capacity-Limited Refuge Fire Demo",
   "missionPhase": "orbit",
   "modules": {
     "mod-habitat": {
@@ -8,7 +8,11 @@
       "name": "Habitat",
       "type": "habitat",
       "pressure": 101.3,
-      "oxygenFraction": 0.21,
+      "oxygenFraction": 0.25,
+      "powerLevelW": 10,
+      "powerConsumptionW": 10,
+      "waterStoredKg": 10,
+      "waterCapacityKg": 10,
       "crew": [
         {
           "id": "crew-commander",
@@ -29,6 +33,7 @@
           "name": "Backup Life Support",
           "type": "life_support",
           "state": "operational",
+          "powerConsumptionW": 35,
           "providesCapabilities": ["habitation", "emergency_life_support"]
         },
         {
@@ -36,6 +41,7 @@
           "name": "Primary Communications",
           "type": "comms",
           "state": "operational",
+          "powerConsumptionW": 20,
           "providesCapabilities": ["communications"]
         }
       ],
@@ -46,14 +52,32 @@
       "name": "Storage",
       "type": "storage",
       "pressure": 101.3,
-      "oxygenFraction": 0.21,
-      "crew": [],
+      "oxygenFraction": 0.25,
+      "powerLevelW": 10,
+      "powerConsumptionW": 10,
+      "waterStoredKg": 2,
+      "waterCapacityKg": 2,
+      "crew": [
+        {
+          "id": "crew-passenger-ito",
+          "name": "Passenger Ito",
+          "role": "Passenger",
+          "providesFunctions": []
+        },
+        {
+          "id": "crew-passenger-silva",
+          "name": "Passenger Silva",
+          "role": "Passenger",
+          "providesFunctions": []
+        }
+      ],
       "equipment": [
         {
           "id": "eq-stor-fuel",
           "name": "Fuel Reserve",
           "type": "fuel",
           "state": "operational",
+          "powerConsumptionW": 1,
           "providesCapabilities": ["propulsion_reserve", "rcs_reserve"]
         },
         {
@@ -61,6 +85,7 @@
           "name": "Fire Suppression System",
           "type": "fire_suppression",
           "state": "operational",
+          "powerConsumptionW": 12,
           "providesCapabilities": ["fire_suppression"]
         }
       ],
@@ -71,13 +96,28 @@
       "name": "Life Support",
       "type": "life_support",
       "pressure": 101.3,
-      "oxygenFraction": 0.21,
+      "oxygenFraction": 0.25,
+      "powerLevelW": 10,
+      "powerConsumptionW": 10,
+      "waterStoredKg": 100,
+      "waterCapacityKg": 100,
+      "suppliesAir": true,
+      "suppliesWater": true,
+      "maxAirOutputPercentPerMin": 0.04,
+      "maxWaterOutputKgPerMin": 0.0106,
+      "waterRecoveryEfficiency": 0.98,
       "crew": [
         {
           "id": "crew-engineer",
           "name": "Engineer Park",
           "role": "Engineer",
           "providesFunctions": ["life_support_ops", "repair", "power_ops"]
+        },
+        {
+          "id": "crew-medical-officer",
+          "name": "Medical Officer Amina",
+          "role": "Medic",
+          "providesFunctions": ["medical_care", "fire_response"]
         }
       ],
       "equipment": [
@@ -86,13 +126,15 @@
           "name": "Oxygen Generator",
           "type": "life_support",
           "state": "operational",
-          "providesCapabilities": ["oxygen_supply", "habitation"]
+          "powerConsumptionW": 25,
+          "providesCapabilities": ["habitation"]
         },
         {
           "id": "eq-ls-co2",
           "name": "CO2 Scrubber",
           "type": "life_support",
           "state": "operational",
+          "powerConsumptionW": 25,
           "providesCapabilities": ["co2_removal", "habitation"]
         }
       ],
@@ -103,13 +145,24 @@
       "name": "Power",
       "type": "power",
       "pressure": 101.3,
-      "oxygenFraction": 0.21,
+      "oxygenFraction": 0.25,
+      "powerLevelW": 106,
+      "powerConsumptionW": 10,
+      "maxPowerOutputW": 420,
+      "waterStoredKg": 2,
+      "waterCapacityKg": 2,
       "crew": [
         {
           "id": "crew-specialist",
           "name": "Specialist Kim",
           "role": "Mission Specialist",
           "providesFunctions": ["power_ops", "gnc_ops", "repair"]
+        },
+        {
+          "id": "crew-power-technician",
+          "name": "Power Technician Chen",
+          "role": "Technician",
+          "providesFunctions": ["power_ops", "repair"]
         }
       ],
       "equipment": [
@@ -118,14 +171,16 @@
           "name": "Main Reactor",
           "type": "power",
           "state": "operational",
-          "providesCapabilities": ["electrical_power", "thermal_control"]
+          "powerConsumptionW": 8,
+          "providesCapabilities": ["thermal_control"]
         },
         {
           "id": "eq-pwr-solar",
           "name": "Solar Array Controller",
           "type": "power",
           "state": "operational",
-          "providesCapabilities": ["electrical_power"]
+          "powerConsumptionW": 8,
+          "providesCapabilities": []
         }
       ],
       "position": { "x": 600, "y": 380 }
@@ -135,14 +190,32 @@
       "name": "Propulsion",
       "type": "propulsion",
       "pressure": 60.0,
-      "oxygenFraction": 0.0,
-      "crew": [],
+      "oxygenFraction": 0.25,
+      "powerLevelW": 10,
+      "powerConsumptionW": 10,
+      "waterStoredKg": 1,
+      "waterCapacityKg": 1,
+      "crew": [
+        {
+          "id": "crew-return-specialist",
+          "name": "Return Specialist Okafor",
+          "role": "Mission Specialist",
+          "providesFunctions": ["propulsion_ops", "navigation", "return_ops"]
+        },
+        {
+          "id": "crew-safety-officer",
+          "name": "Safety Officer Novak",
+          "role": "Safety Officer",
+          "providesFunctions": ["fire_response", "eva_ops"]
+        }
+      ],
       "equipment": [
         {
           "id": "eq-prop-main",
           "name": "Main Engine",
           "type": "propulsion",
           "state": "operational",
+          "powerConsumptionW": 50,
           "providesCapabilities": ["main_propulsion", "return_capability"]
         },
         {
@@ -150,6 +223,7 @@
           "name": "RCS Thrusters",
           "type": "propulsion",
           "state": "operational",
+          "powerConsumptionW": 25,
           "providesCapabilities": ["attitude_control", "rcs"]
         },
         {
@@ -157,10 +231,61 @@
           "name": "Flight Computer",
           "type": "gnc",
           "state": "operational",
+          "powerConsumptionW": 15,
           "providesCapabilities": ["navigation", "attitude_control"]
         }
       ],
       "position": { "x": 600, "y": 200 }
+    },
+    "mod-storage-2": {
+      "id": "mod-storage-2",
+      "name": "Storage 2",
+      "type": "storage",
+      "pressure": 101.3,
+      "oxygenFraction": 0.245,
+      "powerLevelW": 64,
+      "powerConsumptionW": 10,
+      "waterStoredKg": 0,
+      "waterCapacityKg": 0,
+      "crew": [],
+      "equipment": [],
+      "position": { "x": -150, "y": 200 }
+    },
+    "mod-life-support-2": {
+      "id": "mod-life-support-2",
+      "name": "Life Support 2",
+      "type": "life_support",
+      "pressure": 101.3,
+      "oxygenFraction": 0.25,
+      "powerLevelW": 64,
+      "powerConsumptionW": 10,
+      "waterStoredKg": 1.6,
+      "waterCapacityKg": 1.6,
+      "suppliesAir": true,
+      "suppliesWater": true,
+      "maxAirOutputPercentPerMin": 0.02,
+      "maxWaterOutputKgPerMin": 0.02376,
+      "waterRecoveryEfficiency": 0.98,
+      "sourceSizingLocked": true,
+      "crew": [],
+      "equipment": [],
+      "position": { "x": -400, "y": 200 }
+    },
+    "mod-power-2": {
+      "id": "mod-power-2",
+      "name": "Power 2",
+      "type": "power",
+      "pressure": 101.3,
+      "oxygenFraction": 0.245,
+      "powerLevelW": 85,
+      "powerConsumptionW": 10,
+      "maxPowerOutputW": 85,
+      "waterStoredKg": 0,
+      "waterCapacityKg": 0,
+      "sourceSizingLocked": true,
+      "crew": [],
+      "equipment": [],
+      "position": { "x": -650, "y": 200 }
     }
   },
   "connections": {
@@ -172,15 +297,30 @@
       "state": "open",
       "ventilationOn": false,
       "flowDirection": "bidirectional",
-      "transferClass": "high"
+      "transferClass": "high",
+      "baseConnectivity": 100,
+      "connectivity": 49
+    },
+    "conn-stor-ls-utility": {
+      "id": "conn-stor-ls-utility",
+      "source": "mod-storage",
+      "target": "mod-life-support",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "low",
+      "powerLineOn": true,
+      "airLineOn": true,
+      "waterLineOn": true
     },
     "conn-stor-ls": {
       "id": "conn-stor-ls",
       "source": "mod-storage",
       "target": "mod-life-support",
-      "type": "imv",
+      "type": "hatch",
       "state": "open",
-      "ventilationOn": true,
+      "ventilationOn": false,
       "flowDirection": "bidirectional",
       "transferClass": "high"
     },
@@ -213,12 +353,60 @@
       "ventilationOn": true,
       "flowDirection": "bidirectional",
       "transferClass": "medium"
+    },
+    "conn-hab-storage2": {
+      "id": "conn-hab-storage2",
+      "source": "mod-habitat",
+      "target": "mod-storage-2",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "medium",
+      "powerLineOn": true,
+      "airLineOn": true,
+      "waterLineOn": true,
+      "baseConnectivity": 100,
+      "connectivity": 49
+    },
+    "conn-storage2-ls2": {
+      "id": "conn-storage2-ls2",
+      "source": "mod-storage-2",
+      "target": "mod-life-support-2",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "medium",
+      "powerLineOn": true,
+      "airLineOn": true,
+      "waterLineOn": true
+    },
+    "conn-ls2-pwr2": {
+      "id": "conn-ls2-pwr2",
+      "source": "mod-life-support-2",
+      "target": "mod-power-2",
+      "type": "hatch",
+      "state": "open",
+      "ventilationOn": false,
+      "flowDirection": "bidirectional",
+      "transferClass": "medium",
+      "powerLineOn": true,
+      "airLineOn": true,
+      "waterLineOn": true
     }
   },
   "emergency": {
     "type": "fire",
-    "affectedModuleId": "mod-storage",
+    "affectedModuleId": "mod-habitat",
     "detected": true,
-    "sourceProfileId": null
+    "sourceProfileId": "FLOW_SHUTDOWN_EXTINCTION_CANDIDATE",
+    "escapeTarget": {
+      "connectionId": "conn-storage2-ls2",
+      "fromModuleId": "mod-storage-2",
+      "toModuleId": "mod-life-support-2",
+      "selection": "manual",
+      "maxOccupants": 9
+    }
   }
 }

@@ -159,7 +159,10 @@ Field semantics:
 | `capabilities` | `AVAILABLE / AT_RISK / UNAVAILABLE`, keyed by whatever caps the scenario declares (demo: `RETURN`, `HABITATION`) |
 | `critical_functions` | list, possibly empty. `flag` is `SINGLE_PROVIDER` or `NO_PROVIDER` |
 
-**No survival probability, no fatality estimate, no BEST ACTION anywhere.**
+Survival and return probabilities are explicit modeled outputs. They come from
+`ASSUMED_*` response curves and must not be presented as clinically validated
+forecasts. Phase A still reports outcomes; action recommendation belongs to
+Phase C.
 That judgment is Phase C's, and ultimately the human's.
 
 ### 3.2 `timeline[i]` — 120 frames for Phase B charts

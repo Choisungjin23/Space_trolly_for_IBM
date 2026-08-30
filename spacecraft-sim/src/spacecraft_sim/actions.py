@@ -9,6 +9,7 @@ copy — the input scenario is never mutated.
 from dataclasses import dataclass, field
 from typing import Callable
 
+from spacecraft_sim import config
 from spacecraft_sim.crew import find_route, functions_of, module_is_hazardous, move_crew
 from spacecraft_sim.models import Scenario
 
@@ -42,12 +43,33 @@ def _apply_shutdown_ventilation(sc: Scenario, params: dict) -> None:
     conn.ventilation_state = "off"
 
 
+def _apply_shutdown_utility(sc: Scenario, params: dict) -> None:
+    conn = sc.connection(params["connection_id"])
+    setattr(conn, f"{params['resource']}_line_on", False)
+
+
 def _apply_isolate(sc: Scenario, params: dict) -> None:
     module = sc.module(params["module_id"])
     module.isolated = True
     for conn in sc.connections_of(module.id):
         conn.path_state = "closed"
         conn.ventilation_state = "off"
+
+
+def _apply_abandon(sc: Scenario, params: dict) -> None:
+    """Deliberately stop rescue and utility allocation to one module."""
+    module = sc.module(params["module_id"])
+    module.isolated = True
+    for crew in sc.crew:
+        if crew.module_id == module.id:
+            crew.abandoned = True
+            crew.state = "TRAPPED"
+    for conn in sc.connections_of(module.id):
+        conn.path_state = "closed"
+        conn.ventilation_state = "off"
+        conn.power_line_on = False
+        conn.air_line_on = False
+        conn.water_line_on = False
 
 
 def _apply_evacuate(sc: Scenario, params: dict) -> None:
@@ -69,7 +91,9 @@ _APPLIERS: dict[str, Callable[[Scenario, dict], None]] = {
     "close_hatch": _apply_close_path,
     "close_imv": _apply_close_path,
     "shutdown_ventilation": _apply_shutdown_ventilation,
+    "shutdown_utility": _apply_shutdown_utility,
     "isolate": _apply_isolate,
+    "abandon": _apply_abandon,
     "evacuate": _apply_evacuate,
     "power_down": _apply_power_down,
     "station_repairer": _apply_station_repairer,
@@ -94,8 +118,12 @@ def generate_actions(scenario: Scenario) -> list[Action]:
             actions.append(action)
 
     fire_modules = scenario.fire_modules()
+    incident_modules = list(fire_modules)
+    incident_modules.extend(
+        module for module in scenario.modules if module.electrical_short and module not in incident_modules
+    )
 
-    for module in fire_modules:
+    for module in incident_modules:
         for conn in scenario.connections_of(module.id):
             pair = f"{conn.source}-{conn.target}"
             if conn.type == "hatch" and conn.path_state == "open":
@@ -130,6 +158,24 @@ def generate_actions(scenario: Scenario) -> list[Action]:
                         )
                     )
 
+            if conn.type == "hatch":
+                for resource in ("power", "air", "water"):
+                    if getattr(conn, f"{resource}_line_on"):
+                        add(
+                            Action(
+                                id=f"shutdown_{resource}_line:{conn.id}",
+                                kind="shutdown_utility",
+                                label=f"Shut {resource} line {pair}",
+                                description=(
+                                    f"Stop {resource} supply on {conn.id} while "
+                                    "leaving the other utility lines independently controlled."
+                                ),
+                                params={
+                                    "connection_id": conn.id,
+                                    "resource": resource,
+                                },
+                            )
+                        )
         add(
             Action(
                 id=f"isolate:{module.id}",
@@ -142,6 +188,22 @@ def generate_actions(scenario: Scenario) -> list[Action]:
                 params={"module_id": module.id},
             )
         )
+
+        if any(c.module_id == module.id for c in scenario.crew):
+            affected = sorted(c.id for c in scenario.crew if c.module_id == module.id)
+            add(
+                Action(
+                    id=f"abandon:{module.id}",
+                    kind="abandon",
+                    label=f"Abandon {module.name} ({module.id})",
+                    description=(
+                        f"Stop rescue and all utility supply to {module.id}; "
+                        f"affected crew: {', '.join(affected)}. This option is "
+                        "included so total expected surviving returnees can be compared."
+                    ),
+                    params={"module_id": module.id, "crew_ids": affected},
+                )
+            )
 
         if scenario.equipment_in(module.id):
             add(
@@ -162,7 +224,15 @@ def generate_actions(scenario: Scenario) -> list[Action]:
     # equipment, so that if it is damaged later someone is on site to fix it.
     # Repairs only progress with a provider present, so this is a real choice
     # made before the damage happens.
-    repair_functions = {system.repair_function for system in scenario.systems}
+    # A scenario need not declare systems - Phase B builds capabilities from
+    # equipment directly and declares none. update_repairs() still repairs that
+    # equipment, falling back to the default repair function, so the action
+    # that puts a repairer on site has to be offered on the same terms.
+    # Deriving the set from systems alone would leave this action unreachable
+    # for every such scenario.
+    repair_functions = {system.repair_function for system in scenario.systems} or {
+        config.DEFAULT_REPAIR_FUNCTION
+    }
     modules_with_equipment = sorted({e.module_id for e in scenario.equipment})
 
     for crew in scenario.crew:

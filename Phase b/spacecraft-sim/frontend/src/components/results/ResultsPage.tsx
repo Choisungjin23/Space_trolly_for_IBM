@@ -8,7 +8,14 @@ import { useScenarioStore } from '../../store/useScenarioStore'
 import ActionResultCard from './ActionResultCard'
 import TimelineView from './TimelineView'
 import AdvisorPanel from '../advisor/AdvisorPanel'
-import DisclaimerBanner from '../shared/DisclaimerBanner'
+import { ProvenanceDisclosure } from '../shared/Provenance'
+import PriorityGraph from './PriorityGraph'
+import {
+  IconAdvisory,
+  IconConstellation,
+  IconFutures,
+  IconHazard,
+} from '../shared/Icons'
 
 interface Props {
   onBack: () => void
@@ -28,9 +35,9 @@ export default function ResultsPage({ onBack }: Props) {
           alignItems: 'center',
           justifyContent: 'center',
           height: '100vh',
-          color: '#64748b',
+          color: 'var(--ink-3)',
           fontSize: 14,
-          background: '#0a0c10',
+          background: 'var(--void)',
         }}
       >
         No results available.{' '}
@@ -39,7 +46,7 @@ export default function ResultsPage({ onBack }: Props) {
           style={{
             background: 'none',
             border: 'none',
-            color: '#3b82f6',
+            color: 'var(--gold)',
             cursor: 'pointer',
             marginLeft: 8,
             fontSize: 14,
@@ -51,18 +58,25 @@ export default function ResultsPage({ onBack }: Props) {
     )
   }
 
-  const { generatedActions, results, simulatedHorizonSeconds, runsRequested, sourceLabel } = result
+  const { generatedActions, results, simulatedHorizonSeconds, runsRequested } = result
+  const priorityResult =
+    results.find((candidate) => candidate.actionId === selectedActionId) ?? results[0]
 
   const tabStyle = (tab: string): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 7,
     background: 'none',
     border: 'none',
-    borderBottom: `2px solid ${activeTab === tab ? '#3b82f6' : 'transparent'}`,
-    color: activeTab === tab ? '#3b82f6' : '#64748b',
+    borderBottom: `1px solid ${activeTab === tab ? 'var(--gold)' : 'transparent'}`,
+    color: activeTab === tab ? 'var(--gold)' : 'var(--ink-3)',
     cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600,
-    padding: '8px 16px',
-    letterSpacing: '0.04em',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11,
+    fontWeight: 500,
+    padding: '17px 15px 16px',
+    letterSpacing: '.14em',
+    transition: 'color .15s, border-color .15s',
   })
 
   return (
@@ -71,16 +85,16 @@ export default function ResultsPage({ onBack }: Props) {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        background: '#0a0c10',
+        background: 'var(--void)',
         overflow: 'hidden',
       }}
     >
       {/* Header */}
       <div
         style={{
-          background: '#111318',
-          borderBottom: '1px solid #2a2d36',
-          padding: '0 20px',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--line)',
+          padding: '0 18px',
           display: 'flex',
           alignItems: 'center',
           gap: 16,
@@ -92,88 +106,131 @@ export default function ResultsPage({ onBack }: Props) {
           style={{
             background: 'none',
             border: 'none',
-            color: '#64748b',
+            color: 'var(--ink-3)',
             cursor: 'pointer',
-            fontSize: 13,
-            padding: '12px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            letterSpacing: '.14em',
+            padding: '18px 0',
           }}
         >
-          ← Back to Builder
+          ← ARCHITECTURE
         </button>
 
-        <div style={{ width: 1, height: 20, background: '#2a2d36' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--line)' }} />
 
-        <div style={{ flex: 1 }}>
-          <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 14 }}>
-            Emergency Analysis
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ color: 'var(--gold)' }}>
+            <IconConstellation size={15} />
           </span>
-          <span style={{ color: '#475569', fontSize: 12, marginLeft: 10 }}>
-            {scenario.name}
-          </span>
+          <span style={{ color: 'var(--ink)', fontSize: 14 }}>{scenario.name}</span>
         </div>
 
-        <div style={{ color: '#475569', fontSize: 11 }}>
-          {runsRequested} sampled scenarios · {simulatedHorizonSeconds}s horizon
+        <div style={{ flex: 1 }} />
+
+        <div
+          className="mono"
+          style={{ color: 'var(--ink-4)', fontSize: 10, letterSpacing: '.1em' }}
+        >
+          {runsRequested} SAMPLED SCENARIOS · {simulatedHorizonSeconds}s HORIZON
         </div>
 
-        {/* Tabs */}
+        <ProvenanceDisclosure align="right" />
+
+        {/* The remaining two movements */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button style={tabStyle('comparison')} onClick={() => setActiveTab('comparison')}>
-            Comparison
+            <IconFutures size={13} />
+            FUTURES
           </button>
           <button style={tabStyle('timeline')} onClick={() => setActiveTab('timeline')}>
-            Timeline
+            TIMELINE
           </button>
           <button style={tabStyle('advisor')} onClick={() => setActiveTab('advisor')}>
-            Advisor
+            <IconAdvisory size={13} />
+            ADVISORY
           </button>
         </div>
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, overflow: 'auto', padding: 20 }}>
-        {/* Disclaimer */}
-        <div style={{ marginBottom: 16 }}>
-          <DisclaimerBanner sourceLabel={sourceLabel} />
-        </div>
-
         {/* Emergency context */}
         {scenario.emergency && (
           <div
             style={{
-              background: '#450a0a',
-              border: '1px solid #7f1d1d',
-              borderRadius: 8,
-              padding: '10px 16px',
-              marginBottom: 16,
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderLeft: '2px solid var(--ember)',
+              borderRadius: 3,
+              padding: '11px 16px',
+              marginBottom: 18,
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 14,
               fontSize: 13,
             }}
           >
-            <span>🔥</span>
+            <span style={{ color: 'var(--ember)' }}>
+              <IconHazard size={15} />
+            </span>
             <div>
-              <strong style={{ color: '#fca5a5' }}>
-                Fire — {scenario.modules[scenario.emergency.affectedModuleId]?.name ?? scenario.emergency.affectedModuleId}
-              </strong>
-              <span style={{ color: '#9ca3af', marginLeft: 8 }}>
-                {scenario.emergency.detected ? 'Detected' : 'Undetected'}
+              <span style={{ color: 'var(--ink)' }}>
+                {scenario.emergency.type === 'electronic_short' ? 'Electronic Short' : 'Fire'} —{' '}
+                {scenario.modules[scenario.emergency.affectedModuleId]?.name ??
+                  scenario.emergency.affectedModuleId}
+              </span>
+              <span
+                className="mono"
+                style={{
+                  color: 'var(--ink-3)',
+                  marginLeft: 12,
+                  fontSize: 10,
+                  letterSpacing: '.12em',
+                }}
+              >
+                {scenario.emergency.detected ? 'DETECTED' : 'UNDETECTED'}
               </span>
             </div>
-            <div style={{ marginLeft: 'auto', color: '#9ca3af', fontSize: 12 }}>
-              {generatedActions.length} actions analyzed
+            <div
+              className="mono"
+              style={{
+                marginLeft: 'auto',
+                color: 'var(--ink-3)',
+                fontSize: 10,
+                letterSpacing: '.1em',
+              }}
+            >
+              {generatedActions.length} CANDIDATE ACTIONS
             </div>
+            {scenario.emergency.escapeTarget && (
+              <div className="mono" style={{ color: 'var(--good)', fontSize: 9 }}>
+                ESCAPE {scenario.modules[scenario.emergency.escapeTarget.fromModuleId]?.name ?? scenario.emergency.escapeTarget.fromModuleId}
+                {' » '}
+                {scenario.modules[scenario.emergency.escapeTarget.toModuleId]?.name ?? scenario.emergency.escapeTarget.toModuleId}
+                {scenario.emergency.escapeTarget.maxOccupants
+                  ? ` · ${scenario.emergency.escapeTarget.maxOccupants} SEATS`
+                  : ''}
+              </div>
+            )}
           </div>
+        )}
+
+        {priorityResult && (
+          <PriorityGraph
+            result={priorityResult}
+            action={generatedActions.find((action) => action.id === priorityResult.actionId)}
+            scenario={scenario}
+          />
         )}
 
         {activeTab === 'comparison' && (
           <div>
-            <div style={{ color: '#475569', fontSize: 11, marginBottom: 14, letterSpacing: '0.05em' }}>
-              SIMULATED ACTION OUTCOMES — click a card to highlight
+            <div
+              className="circe-label"
+              style={{ color: 'var(--ink-3)', marginBottom: 16 }}
+            >
+              SIMULATED OUTCOMES · SELECT AN ACTION TO FOCUS THE ADVISORY
             </div>
             <div
               style={{
@@ -207,17 +264,24 @@ export default function ResultsPage({ onBack }: Props) {
               style={{
                 marginTop: 16,
                 padding: '10px 14px',
-                background: '#1a1d24',
-                border: '1px solid #2a2d36',
-                borderRadius: 6,
+                background: 'transparent',
+                border: '1px solid var(--line)',
+                borderRadius: 3,
                 fontSize: 12,
-                color: '#64748b',
+                color: 'var(--ink-3)',
+                lineHeight: 1.7,
               }}
             >
-              <strong style={{ color: '#94a3b8' }}>Trade-off note:</strong> Each action presents different
-              containment, crew evacuation, and capability trade-offs. No single "best action" is
-              automatically recommended — this decision rests with the operator.
-              Open the Advisor tab for the Phase C multi-agent analysis.
+              <span
+                className="circe-label"
+                style={{ color: 'var(--ink-2)', display: 'block', marginBottom: 5 }}
+              >
+                TRADE-OFF
+              </span>
+              Each action buys containment, evacuation margin, or capability at
+              the cost of another. Nothing here ranks them into a winner — that
+              judgement belongs to the operator. Open ADVISORY to consult the
+              multi-agent analysis.
             </div>
           </div>
         )}
@@ -235,6 +299,8 @@ export default function ResultsPage({ onBack }: Props) {
             scenario={scenario}
             emergency={scenario.emergency}
             focusActionId={selectedActionId}
+            results={results}
+            actions={generatedActions}
           />
         )}
       </div>

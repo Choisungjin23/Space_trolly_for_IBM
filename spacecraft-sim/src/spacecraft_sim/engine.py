@@ -24,10 +24,17 @@ from spacecraft_sim.capability import (
     update_equipment_damage,
     update_repairs,
 )
-from spacecraft_sim.crew import critical_functions, update_crew
+from spacecraft_sim.crew import (
+    critical_functions,
+    rank_crew_for_evacuation,
+    update_crew,
+    update_equipment_evacuation,
+)
 from spacecraft_sim.hazard import step_hazard
 from spacecraft_sim.models import Scenario
 from spacecraft_sim.profiles import is_extinguished
+from spacecraft_sim.resources import update_resources
+from spacecraft_sim.mobility import update_connectivity
 
 
 @dataclass
@@ -110,8 +117,11 @@ def simulate(
 
         update_equipment_damage(sc)
         update_repairs(sc, dt)
+        update_connectivity(sc, dt)
+        update_resources(sc, dt)
         evaluate_systems(sc)
         update_crew(sc, t, dt, response_seconds)
+        update_equipment_evacuation(sc)
 
         for module in sc.modules:
             peak_extinction[module.id] = max(
@@ -128,6 +138,28 @@ def simulate(
                 "crew": {c.id: c.state for c in sc.crew},
                 "crew_modules": {c.id: c.module_id for c in sc.crew},
                 "systems": {s.id: s.state for s in sc.systems},
+                "resources": {
+                    m.id: {
+                        "power_level_w": round(m.power_level_w, 3),
+                        "power_sufficient": m.power_sufficient,
+                        "air_level_fraction": round(m.atmosphere.o2, 5),
+                        "water_stored_kg": round(m.water_stored_kg, 5),
+                        "water_sufficient": m.water_sufficient,
+                    }
+                    for m in sc.modules
+                },
+                "survival_probability": {
+                    c.id: round(c.survival_probability, 6) for c in sc.crew
+                },
+                "connectivity": {
+                    connection.id: round(connection.connectivity, 3)
+                    for connection in sc.connections
+                    if connection.type == "hatch"
+                },
+                "crew_priority": {
+                    crew.id: round(crew.evacuation_priority_score, 3)
+                    for crew in sc.crew
+                },
             }
         )
 
@@ -137,7 +169,15 @@ def simulate(
         sc = action.apply(sc)
 
     evaluate_systems(sc)
+    rank_crew_for_evacuation(sc)
     facilities_down = damaged_facilities(sc)
+
+    capabilities = evaluate_capabilities(sc)
+    return_available = capabilities.get("RETURN", "AVAILABLE") != "UNAVAILABLE"
+    for crew_member in sc.crew:
+        crew_member.return_probability = (
+            crew_member.survival_probability if return_available and not crew_member.abandoned else 0.0
+        )
 
     result.final = sc
     result.summary = {
@@ -160,6 +200,20 @@ def simulate(
                 "exposure_seconds": round(c.hazard_exposure_seconds, 1),
                 "smac_dose_fraction": round(c.smac_dose_fraction, 4),
                 "module": c.module_id,
+                "survival_probability": round(c.survival_probability, 6),
+                "return_probability": round(c.return_probability, 6),
+                "estimated_survival_minutes": (
+                    round(c.estimated_survival_minutes, 3)
+                    if c.estimated_survival_minutes is not None
+                    else None
+                ),
+                "resource_risk_reasons": list(c.resource_risk_reasons),
+                "abandoned": c.abandoned,
+                "priority_score": round(c.evacuation_priority_score, 3),
+                "priority_rank": c.evacuation_priority_rank,
+                "priority_reasons": list(c.priority_reasons),
+                "waiting_for_connection_id": c.waiting_for_connection_id,
+                "escape_capacity_denied": c.escape_capacity_denied,
             }
             for c in sc.crew
         },
@@ -171,8 +225,63 @@ def simulate(
         "system_reasons": {
             s.id: s.unavailable_reason for s in sc.systems if s.unavailable_reason
         },
-        "capabilities": evaluate_capabilities(sc),
+        "capabilities": capabilities,
         "critical_functions": critical_functions(sc.crew, facilities_down),
+        "resources": {
+            m.id: {
+                "power_level_w": round(m.power_level_w, 3),
+                "power_consumption_w": round(m.power_consumption_w, 3),
+                "power_sufficient": m.power_sufficient,
+                "air_level_fraction": round(m.atmosphere.o2, 5),
+                "water_stored_kg": round(m.water_stored_kg, 5),
+                "water_demand_kg_per_min": round(m.water_demand_kg_per_min, 6),
+                "water_sufficient": m.water_sufficient,
+            }
+            for m in sc.modules
+        },
+        "expected_survivors": round(sum(c.survival_probability for c in sc.crew), 6),
+        "expected_returnees": round(sum(c.return_probability for c in sc.crew), 6),
+        "connectivity": {
+            connection.id: {
+                "connectivity": round(connection.connectivity, 3),
+                "base_connectivity": round(connection.base_connectivity, 3),
+                "power_transfer_percent": round(connection.power_transfer_factor * 100, 3),
+                "crew_throughput_per_min": round(
+                    connection.crew_throughput_per_min, 3
+                ),
+                "air_throughput_percent_per_min": round(
+                    connection.air_throughput_percent_per_min, 3
+                ),
+                "crew_passages": connection.total_crew_passages,
+                "equipment_passage_units": round(
+                    connection.total_equipment_passage_units, 3
+                ),
+            }
+            for connection in sc.connections
+            if connection.type == "hatch"
+        },
+        "equipment_priority": {
+            equipment.id: {
+                "name": equipment.name,
+                "score": round(equipment.evacuation_priority_score, 3),
+                "rank": equipment.evacuation_priority_rank,
+                "portable": equipment.portable,
+                "passage_units": equipment.passage_units,
+                "reasons": list(equipment.priority_reasons),
+                "evacuated": equipment.evacuated,
+            }
+            for equipment in sc.equipment
+        },
+        "escape_target": (
+            {
+                "connection_id": sc.escape_target_connection_id,
+                "from_module_id": sc.escape_from_module_id,
+                "to_module_id": sc.escape_target_module_id,
+                "max_occupants": sc.escape_capacity_people,
+            }
+            if sc.escape_target_connection_id
+            else None
+        ),
     }
     return result
 

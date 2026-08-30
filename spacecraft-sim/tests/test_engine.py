@@ -172,7 +172,7 @@ def test_criticality_report_distinguishes_measured_from_assumed():
     ]
     text = format_criticality(findings)
     assert "measured" in text and "assumed" in text
-    assert "Neither is a valuation of a life" in text
+    assert "counterfactual impact on surviving returnees" in text
 
 
 def test_default_horizon_covers_real_timescales():

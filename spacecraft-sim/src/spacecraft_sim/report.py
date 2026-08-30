@@ -129,12 +129,12 @@ def format_criticality(findings: list[dict]) -> str:
         )
     rows.append("")
     rows.append(
-        "measured = capability score lost when this crew member is removed "
-        "(leave-one-out)."
+        "measured = expected surviving returnees lost when this crew member is "
+        "removed (leave-one-out)."
     )
     rows.append(
-        "assumed  = FMECA-style weight from the ASSUMED_ tables in config. "
-        "Neither is a valuation of a life."
+        "assumed  = FMECA-style function weight from the ASSUMED_ tables. "
+        "Priorities describe counterfactual impact on surviving returnees."
     )
 
     if findings and all(f["measured_score"] == 0.0 for f in findings):

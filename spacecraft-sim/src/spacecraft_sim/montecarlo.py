@@ -41,6 +41,8 @@ class Distribution:
     no_crew_reached_smac_dose: int = 0
     mean_total_exposure_seconds: float = 0.0
     mean_peak_smac_dose: float = 0.0
+    mean_expected_survivors: float = 0.0
+    mean_expected_returnees: float = 0.0
     notes: list[str] = field(default_factory=list)
 
 
@@ -95,6 +97,8 @@ def run_montecarlo(
     dist = Distribution(action_id=action.id, samples=n)
     total_exposure = 0.0
     total_peak_dose = 0.0
+    total_expected_survivors = 0.0
+    total_expected_returnees = 0.0
 
     for _ in range(n):
         sc, assumptions = sample_scenario(scenario, rng)
@@ -142,9 +146,13 @@ def run_montecarlo(
 
         total_exposure += sum(c["exposure_seconds"] for c in summary["crew"].values())
         total_peak_dose += peak_dose
+        total_expected_survivors += summary["expected_survivors"]
+        total_expected_returnees += summary["expected_returnees"]
 
     dist.mean_total_exposure_seconds = round(total_exposure / n, 1) if n else 0.0
     dist.mean_peak_smac_dose = round(total_peak_dose / n, 4) if n else 0.0
+    dist.mean_expected_survivors = round(total_expected_survivors / n, 6) if n else 0.0
+    dist.mean_expected_returnees = round(total_expected_returnees / n, 6) if n else 0.0
     dist.notes.append(
         "Counts over sampled scenario assumptions; the Monte Carlo repetition "
         "does not validate real-world probabilities."

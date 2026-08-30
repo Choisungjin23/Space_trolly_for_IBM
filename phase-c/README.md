@@ -43,6 +43,8 @@ the Phase A contract §8:
 - `TimelineResult` / `Distribution` dataclasses serialized, `final` via `model_dump()`
 - the separate Monte Carlo call joined onto the deterministic result
 - **equipment** lifted out of `final` (it is absent from `summary`)
+- hatch connectivity, crew/air throughput, passage feedback, and the computed
+  crew/portable-equipment queue normalized for bottleneck-aware advice
 - 120 timeline frames replaced by ~10–30 semantic events
 - capability keys iterated, never named in code
 - `detected_at_seconds: null` promoted to a first-class `NEVER_DETECTED` status
@@ -67,7 +69,7 @@ each agent returns, the **validator** enforces:
 | R1 | a number in prose that is not in the simulation or cited evidence |
 | R2 | a `SIMULATION_FACT` claim whose refs do not resolve |
 | R3 | a Monte Carlo count phrased as a probability or percentage |
-| R4 | fatality, lethality or survival-probability language anywhere |
+| R4 | survival or mortality claims must resolve to modeled output or cited evidence |
 | R5 | "BEST ACTION" from anyone but the Coordinator |
 | R6–R8 | a recommendation with no trade-off, no uncertainty, or that takes the decision away from the human |
 
@@ -87,15 +89,26 @@ does not transfer to microgravity.
 
 ## LLM
 
-`LLMClient` is a protocol. `GraniteClient` talks to IBM Granite on watsonx,
-configured only by environment:
+`LLMClient` is a protocol. `GraniteClient` talks to watsonx.ai, configured
+only by environment - in normal local development from
+`Phase b/spacecraft-sim/backend/.env`:
 
 ```
 WATSONX_API_KEY      required
-WATSONX_PROJECT_ID   required
-WATSONX_URL          optional, default https://us-south.ml.cloud.ibm.com
-WATSONX_MODEL_ID     optional, default ibm/granite-3-8b-instruct
+WATSONX_PROJECT_ID   required, and must belong to the region below
+WATSONX_URL          required, e.g. https://us-south.ml.cloud.ibm.com (Dallas)
+WATSONX_MODEL_ID     required, e.g. ibm/granite-4-h-small
 ```
+
+None of the four has a built-in default. There is no fallback model and no
+fallback region, so moving to another region or another supported foundation
+model is a `.env` edit and a restart - never a code change. Whether the model
+exists is decided by watsonx itself: the SDK checks `model_id` against what the
+configured environment actually serves, so an unavailable model fails loudly
+rather than being silently swapped.
+
+`phase-c doctor` prints the resolved region and model, and `--live` makes one
+minimal real call. Neither ever prints the API key or the project id.
 
 `StubLLMClient` is a deterministic test double that **refuses to invent
 findings** — it is not offered as a production fallback, because a decision-

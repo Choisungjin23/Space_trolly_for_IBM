@@ -13,6 +13,12 @@ Phase B backend contains:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Load backend/.env before routes import Phase C. Some Phase C settings, such
+# as the spend guard, are evaluated when their modules are imported.
+from app.config import load_backend_env
+
+load_backend_env()
+
 from app.api.routes import ACTIVE_ADAPTER, router
 
 app = FastAPI(

@@ -43,5 +43,10 @@ Answer these, using only the DATA:
             "equipment": {
                 k: v.model_dump(mode="json") for k, v in analysis.equipment.items()
             },
+            "resources": {
+                k: v.model_dump(mode="json") for k, v in analysis.resources.items()
+            },
+            "expected_survivors": analysis.expected_survivors,
+            "expected_returnees": analysis.expected_returnees,
             "events": events_of(analysis, SYSTEM_EVENTS),
         }

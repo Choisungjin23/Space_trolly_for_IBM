@@ -152,6 +152,30 @@ def test_station_repairer_never_targets_a_hazardous_module(demo):
     assert "station_repairer:C2:M2" not in ids  # M2 is on fire
 
 
+def test_station_repairer_is_offered_when_no_systems_are_declared(demo):
+    """A scenario may build capabilities from equipment and declare no systems
+    at all - Phase B does exactly that. update_repairs() still repairs that
+    equipment on the default repair function, so deriving the offer from
+    scenario.systems alone would make this action unreachable there."""
+    demo.systems.clear()
+
+    ids = [a.id for a in generate_actions(demo)]
+
+    assert any(i.startswith("station_repairer:C2:") for i in ids)
+    # Crew without the repair function are still excluded.
+    assert not any(i.startswith("station_repairer:C1:") for i in ids)
+
+
+def test_declared_systems_still_decide_the_repair_function(demo):
+    """The fallback must not override an explicit declaration."""
+    for system in demo.systems:
+        system.repair_function = "nobody_has_this_function"
+
+    ids = [a.id for a in generate_actions(demo)]
+
+    assert not any(i.startswith("station_repairer:") for i in ids)
+
+
 # ── Measured criticality now has signal ──────────────────────────────────────
 
 def test_leave_one_out_now_separates_crew(demo):
@@ -163,7 +187,9 @@ def test_leave_one_out_now_separates_crew(demo):
     # propulsion and navigation. Both must now register.
     assert scores["C2"] > 0
     assert scores["C4"] > 0
-    assert scores["C2"] > scores["C4"]
+    # Both are single points of failure for return in this scenario, so the
+    # new expected-returnee objective correctly ties their marginal impact.
+    assert scores["C2"] == scores["C4"]
 
 
 def test_measured_and_assumed_rankings_agree_on_the_demo(demo):

@@ -61,7 +61,7 @@ def test_crew_agent_receives_crew_keyed_by_id(focus, case):
 
 def test_crew_agent_carries_the_criticality_framing(focus, case):
     role = CrewSafetyAgent(StubLLMClient()).role
-    assert "worth of a life" in role
+    assert "expected surviving returnees" in role
     assert "irreplaceable a FUNCTION" in role
     payload = CrewSafetyAgent(StubLLMClient()).project(focus, case)
     assert payload["criticality_baseline_action"]
@@ -167,3 +167,63 @@ def test_evidence_answers_carry_a_citation_and_applicability(focus, case):
         assert answer.citation.locator
         assert answer.applicability
         assert answer.ref_id.startswith("evidence:")
+
+
+# ── Prompt size ─────────────────────────────────────────────────────────────
+
+def test_coordinator_trims_without_reshaping(case):
+    """Trimming may drop whole subtrees but must never restructure one: a
+    surviving value has to keep the exact JSON pointer the fact registry built
+    for it, or a sound citation becomes a grounding violation."""
+    from phase_c.agents.coordinator import _comparable
+
+    analysis = case.actions[0]
+    full = analysis.model_dump(mode="json")
+    trimmed = _comparable(analysis)
+
+    assert set(trimmed) <= set(full)
+    for key, value in trimmed.items():
+        if key == "equipment":
+            continue  # entries are dropped, but each survivor is untouched
+        assert value == full[key], f"{key} was reshaped, not merely dropped"
+
+    for equipment_id, item in trimmed.get("equipment", {}).items():
+        assert item == full["equipment"][equipment_id]
+
+
+def test_coordinator_keeps_only_equipment_that_is_not_nominal(case):
+    from phase_c.agents.coordinator import _comparable
+
+    analysis = case.actions[0]
+    kept = _comparable(analysis).get("equipment", {})
+
+    for item in kept.values():
+        assert item.get("damaged") or not item.get("powered", True)
+
+
+def test_coordinator_payload_is_much_smaller_than_the_raw_case(case):
+    """The coordinator prompt was two thirds of the pipeline's whole input."""
+    import json
+
+    from phase_c.agents.coordinator import _comparable
+
+    raw = json.dumps(
+        [a.model_dump(mode="json") for a in case.actions], indent=2, ensure_ascii=False
+    )
+    trimmed = json.dumps(
+        [_comparable(a) for a in case.actions], separators=(",", ":"), ensure_ascii=False
+    )
+
+    assert len(trimmed) < len(raw) / 2
+
+
+def test_agent_payloads_carry_no_indentation():
+    """Pretty-printing a payload spends a third of it on whitespace the model
+    does not read."""
+    from pathlib import Path
+
+    import phase_c.agents as agents
+
+    for path in Path(agents.__file__).parent.glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        assert "indent=2" not in source, f"{path.name} still pretty-prints its payload"

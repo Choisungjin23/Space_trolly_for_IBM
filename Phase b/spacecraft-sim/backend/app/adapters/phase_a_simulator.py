@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import sys
+import hashlib
 from pathlib import Path
 from typing import Optional
 
@@ -52,6 +53,10 @@ from app.api.schemas import (
     CapabilityOutcomeSummary,
     CriticalFunctionEntry,
     CriticalFunctionSummary,
+    ConnectionConnectivityOutcome,
+    ConnectivityOutcomeSummary,
+    ModuleResourceOutcome,
+    ResourceOutcomeSummary,
     CrewMemberOutcome,
     CrewOutcomeSummary,
     EmergencyConfigIn,
@@ -105,10 +110,32 @@ def to_phase_a_scenario(
                     pressure=module_in.pressure if module_in.pressure is not None else 101.3,
                     o2=module_in.oxygenFraction
                     if module_in.oxygenFraction is not None
-                    else 0.21,
+                    else 0.25,
                 ),
                 crew_ids=[c.id for c in module_in.crew],
                 equipment_ids=[e.id for e in module_in.equipment],
+                power_level_w=module_in.powerLevelW,
+                power_consumption_w=module_in.powerConsumptionW,
+                base_power_consumption_w=module_in.powerConsumptionW,
+                max_power_output_w=(
+                    module_in.maxPowerOutputW if module_in.type == "power" else 0.0
+                ),
+                water_stored_kg=module_in.waterStoredKg,
+                water_capacity_kg=max(
+                    module_in.waterCapacityKg, module_in.waterStoredKg
+                ),
+                supplies_air=(
+                    module_in.type == "life_support" and module_in.suppliesAir
+                ),
+                supplies_water=(
+                    module_in.type == "life_support" and module_in.suppliesWater
+                ),
+                max_air_output_fraction_per_min=(
+                    module_in.maxAirOutputPercentPerMin / 100.0
+                ),
+                max_water_output_kg_per_min=module_in.maxWaterOutputKgPerMin,
+                water_recovery_efficiency=module_in.waterRecoveryEfficiency,
+                disruption_level=module_in.disruptionLevel,
             )
         )
         for crew_in in module_in.crew:
@@ -136,6 +163,9 @@ def to_phase_a_scenario(
                     ),
                     powered=eq_in.state != "unavailable",
                     damaged=eq_in.state == "explicitly_failed",
+                    power_consumption_w=eq_in.powerConsumptionW,
+                    portable=eq_in.portable,
+                    passage_units=eq_in.passageUnits,
                 )
             )
 
@@ -150,6 +180,26 @@ def to_phase_a_scenario(
                 id="_", source="_a", target="_b", type=conn_type
             ).nominal_flow_m3_s()
             flow = default * factor
+        adjacent_emergency = conn_in.type == "hatch" and emergency.affectedModuleId in {
+            conn_in.source, conn_in.target
+        }
+        digest = hashlib.sha256(
+            f"{scenario.id or scenario.name}:{emergency.type}:{conn_in.id}".encode()
+        ).digest()
+        rolled_connectivity = 1 + digest[0] % 50
+        current_connectivity = (
+            rolled_connectivity
+            if adjacent_emergency and conn_in.connectivity > 50
+            else conn_in.connectivity
+        )
+        rolled_power_factor = (5 + digest[1] % 16) / 100.0
+        power_transfer_factor = (
+            rolled_power_factor
+            if adjacent_emergency
+            and emergency.type == "electronic_short"
+            and conn_in.powerTransferFactor >= 1
+            else conn_in.powerTransferFactor
+        )
         connections.append(
             PAConnection(
                 id=conn_in.id,
@@ -160,6 +210,12 @@ def to_phase_a_scenario(
                 ventilation_state="on" if conn_in.ventilationOn else "off",
                 airflow_direction=_AIRFLOW_MAP.get(conn_in.flowDirection, "none"),
                 flow_m3_s=flow,
+                power_line_on=conn_in.powerLineOn,
+                air_line_on=conn_in.airLineOn,
+                water_line_on=conn_in.waterLineOn,
+                base_connectivity=conn_in.baseConnectivity,
+                connectivity=current_connectivity,
+                power_transfer_factor=power_transfer_factor,
             )
         )
 
@@ -171,17 +227,33 @@ def to_phase_a_scenario(
         systems=[],  # Phase B computes capabilities from equipment directly
         capabilities={},
         mission_phase=scenario.missionPhase or "cruise",
+        escape_target_connection_id=(
+            emergency.escapeTarget.connectionId if emergency.escapeTarget else None
+        ),
+        escape_from_module_id=(
+            emergency.escapeTarget.fromModuleId if emergency.escapeTarget else None
+        ),
+        escape_target_module_id=(
+            emergency.escapeTarget.toModuleId if emergency.escapeTarget else None
+        ),
+        escape_capacity_people=(
+            emergency.escapeTarget.maxOccupants if emergency.escapeTarget else None
+        ),
     )
 
-    fire_module = pa_scenario.module(emergency.affectedModuleId)
-    fire_module.fire_state = "sustained"
-    profile = emergency.sourceProfileId
-    fire_module.source_profile_id = (
-        profile if profile in pa_config.SOURCE_PROFILES else None
-    )
+    emergency_module = pa_scenario.module(emergency.affectedModuleId)
+    if emergency.type == "fire":
+        emergency_module.fire_state = "sustained"
+        profile = emergency.sourceProfileId
+        emergency_module.source_profile_id = (
+            profile if profile in pa_config.SOURCE_PROFILES else None
+        )
+    else:
+        emergency_module.electrical_short = True
+        emergency_module.disruption_level = max(emergency_module.disruption_level, 0.7)
     # detected=True means the alarm has already sounded at t=0; otherwise the
     # engine computes detection from smoke reaching the detector threshold.
-    fire_module.detected = bool(emergency.detected)
+    emergency_module.detected = bool(emergency.detected)
 
     return pa_scenario
 
@@ -222,6 +294,27 @@ def _to_phase_b_action(action: Action, pa_scenario: PAScenario) -> ActionSpecOut
             label=action.label,
             description=action.description,
             operations=[ActionOperationOut(type="isolate_module", targetId=module_id)],
+        )
+    if action.kind == "shutdown_utility":
+        conn_id = action.params["connection_id"]
+        resource = action.params["resource"]
+        return ActionSpecOut(
+            id=f"shutdown_{resource}_line_{conn_id}",
+            label=action.label,
+            description=action.description,
+            operations=[
+                ActionOperationOut(
+                    type=f"shutdown_{resource}_line", targetId=conn_id
+                )
+            ],
+        )
+    if action.kind == "abandon":
+        module_id = action.params["module_id"]
+        return ActionSpecOut(
+            id=f"abandon_module_{module_id}",
+            label=action.label,
+            description=action.description,
+            operations=[ActionOperationOut(type="abandon_module", targetId=module_id)],
         )
     if action.kind == "power_down":
         module_id = action.params["module_id"]
@@ -268,6 +361,29 @@ def generate_actions(
     return [spec for spec, _, _ in _action_pairs(scenario, emergency)]
 
 
+def to_phase_a_action_id(
+    scenario: ScenarioIn, emergency: EmergencyConfigIn, action_id: str
+) -> str:
+    """Translate a Phase B action id into the Phase A id it was built from.
+
+    The two layers name the same action differently - `power_down_mod-storage`
+    here, `power_down:mod-storage` in the engine - and Phase C speaks the
+    engine's vocabulary. `_action_pairs` already holds both names for the same
+    action, so the translation is a lookup rather than string surgery.
+
+    A Phase A id passes through unchanged, so callers on either side of the
+    boundary can hand their own id over without knowing which it is.
+    """
+    pairs = _action_pairs(scenario, emergency)
+    for spec, pa_action, _ in pairs:
+        if action_id in (spec.id, pa_action.id):
+            return pa_action.id
+    known = ", ".join(sorted(spec.id for spec, _, _ in pairs))
+    raise ValueError(
+        f"Unknown action id '{action_id}' for this scenario. Available: {known}"
+    )
+
+
 # ── Result translation ──────────────────────────────────────────────────────
 
 _STATE_TO_STATUS = {
@@ -296,7 +412,9 @@ def _equipment_state(
     return "operational"
 
 
-def _capability_summary(equipment_states: dict[str, str], scenario: ScenarioIn) -> dict:
+def _capability_summary(
+    equipment_states: dict[str, str], scenario: ScenarioIn, final: PAScenario
+) -> dict:
     """Phase B semantics: a capability is available while ANY provider is
     operational (redundancy), degraded when the best provider is exposed."""
     by_capability: dict[str, list[str]] = {}
@@ -306,6 +424,15 @@ def _capability_summary(equipment_states: dict[str, str], scenario: ScenarioIn) 
                 by_capability.setdefault(capability, []).append(
                     equipment_states[eq_in.id]
                 )
+    # Source capabilities belong to their modules, not to synthetic equipment
+    # tags. Their availability follows output selection and power sufficiency.
+    for module in final.modules:
+        if module.type == "life_support" and module.supplies_air:
+            state = "operational" if module.power_sufficient and not module.isolated else "unavailable"
+            by_capability.setdefault("oxygen_supply", []).append(state)
+        if module.type == "power" and module.max_power_output_w > 0:
+            state = "operational" if module.power_sufficient and not module.isolated else "unavailable"
+            by_capability.setdefault("electrical_power", []).append(state)
     summary: dict[str, str] = {}
     for capability, states in by_capability.items():
         if any(s == "operational" for s in states):
@@ -377,7 +504,13 @@ def _build_trajectory(
         events: list[str] = []
         if step_index == 0:
             fire_names = ", ".join(m.name for m in pa_scenario.fire_modules())
-            events.append(f"Fire burning in {fire_names or 'spacecraft'}")
+            short_names = ", ".join(m.name for m in pa_scenario.modules if m.electrical_short)
+            if fire_names:
+                events.append(f"Fire burning in {fire_names}")
+            elif short_names:
+                events.append(f"Electronic short active in {short_names}")
+            else:
+                events.append("Emergency active in spacecraft")
         if not detection_reported and detected_at is not None and t >= detected_at:
             events.append(f"Smoke alarm confirmed at t={detected_at:.0f}s")
             detection_reported = True
@@ -413,6 +546,7 @@ def simulate(
     action_ids: Optional[list[str]],
     runs: int,
     seed: Optional[int],
+    on_progress=None,
 ) -> SimulationResponse:
     pairs = _action_pairs(scenario, emergency)
 
@@ -424,8 +558,15 @@ def simulate(
         pairs = [p for p in pairs if p[0].id in action_ids]
 
     results: list[ActionSimulationResult] = []
+    total = len(pairs)
 
-    for spec, pa_action, pa_scenario in pairs:
+    for index, (spec, pa_action, pa_scenario) in enumerate(pairs):
+        # Each action is a deterministic run plus `runs` Monte Carlo samples,
+        # so per-action is the finest granularity that costs nothing to report.
+        if on_progress is not None:
+            on_progress(
+                stage=spec.id, label=spec.label, done=index, total=total
+            )
         deterministic = counterfactual(
             pa_scenario, pa_action, horizon=HORIZON_SECONDS, dt=DT_SECONDS
         )
@@ -451,6 +592,16 @@ def simulate(
             crew_id: CrewMemberOutcome(
                 status=_STATE_TO_STATUS[info["state"]],
                 exposureExampleSeconds=int(info["exposure_seconds"]),
+                survivalProbability=info["survival_probability"],
+                returnProbability=info["return_probability"],
+                abandoned=info["abandoned"],
+                priorityScore=info.get("priority_score", 0.0),
+                priorityRank=info.get("priority_rank"),
+                priorityReasons=info.get("priority_reasons", []),
+                waitingForConnectionId=info.get("waiting_for_connection_id"),
+                escapeCapacityDenied=info.get("escape_capacity_denied", False),
+                estimatedSurvivalMinutes=info.get("estimated_survival_minutes"),
+                resourceRiskReasons=info.get("resource_risk_reasons", []),
             )
             for crew_id, info in summary["crew"].items()
         }
@@ -473,17 +624,53 @@ def simulate(
                 equipment=EquipmentOutcomeSummary(
                     byEquipmentId={
                         eq_id: EquipmentItemOutcome(
-                            name=equipment_names[eq_id], state=state
+                            name=equipment_names[eq_id],
+                            state=state,
+                            portable=next(e.portable for e in final.equipment if e.id == eq_id),
+                            priorityScore=next(e.evacuation_priority_score for e in final.equipment if e.id == eq_id),
+                            priorityRank=next(e.evacuation_priority_rank for e in final.equipment if e.id == eq_id),
+                            priorityReasons=next(e.priority_reasons for e in final.equipment if e.id == eq_id),
+                            evacuated=next(e.evacuated for e in final.equipment if e.id == eq_id),
                         )
                         for eq_id, state in equipment_states.items()
                     }
                 ),
                 capabilities=CapabilityOutcomeSummary(
-                    byCapability=_capability_summary(equipment_states, scenario)
+                    byCapability=_capability_summary(equipment_states, scenario, final)
                 ),
                 criticalFunctions=CriticalFunctionSummary(
                     byFunction=_critical_functions(final)
                 ),
+                resources=ResourceOutcomeSummary(
+                    byModuleId={
+                        module_id: ModuleResourceOutcome(
+                            powerLevelW=values["power_level_w"],
+                            powerDemandW=values["power_consumption_w"],
+                            powerSufficient=values["power_sufficient"],
+                            airLevelPercent=values["air_level_fraction"] * 100,
+                            waterStoredKg=values["water_stored_kg"],
+                            waterDemandKgPerMin=values["water_demand_kg_per_min"],
+                            waterSufficient=values["water_sufficient"],
+                        )
+                        for module_id, values in summary["resources"].items()
+                    }
+                ),
+                connectivity=ConnectivityOutcomeSummary(
+                    byConnectionId={
+                        connection_id: ConnectionConnectivityOutcome(
+                            connectivity=values["connectivity"],
+                            baseConnectivity=values["base_connectivity"],
+                            crewThroughputPerMin=values["crew_throughput_per_min"],
+                            airThroughputPercentPerMin=values["air_throughput_percent_per_min"],
+                            crewPassages=values["crew_passages"],
+                            equipmentPassageUnits=values["equipment_passage_units"],
+                            powerTransferPercent=values.get("power_transfer_percent", 100.0),
+                        )
+                        for connection_id, values in summary["connectivity"].items()
+                    }
+                ),
+                expectedSurvivors=summary["expected_survivors"],
+                expectedReturnees=summary["expected_returnees"],
                 uncertaintySummary=UncertaintySummary(
                     note=(
                         "Phase A engine: counts over sampled scenario assumptions "

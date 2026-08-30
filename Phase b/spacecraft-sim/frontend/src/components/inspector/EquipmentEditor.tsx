@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import type { Equipment, EquipmentState } from '../../types/scenario'
 import { useScenarioStore } from '../../store/useScenarioStore'
+import { defaultEquipmentPortable, defaultEquipmentPowerW } from '../../domain/resourceSizing'
 
 interface Props {
   moduleId: string
@@ -20,14 +21,14 @@ const EQUIPMENT_TYPES = [
 ]
 
 const EQUIPMENT_STATE_OPTIONS: { value: EquipmentState; label: string; color: string }[] = [
-  { value: 'operational', label: 'Operational', color: '#22c55e' },
-  { value: 'exposed_at_risk', label: 'Exposed / At Risk', color: '#f59e0b' },
-  { value: 'unavailable', label: 'Unavailable', color: '#ef4444' },
-  { value: 'explicitly_failed', label: 'Failed', color: '#7f1d1d' },
+  { value: 'operational', label: 'Operational', color: 'var(--good)' },
+  { value: 'exposed_at_risk', label: 'Exposed / At Risk', color: 'var(--amber)' },
+  { value: 'unavailable', label: 'Unavailable', color: 'var(--ember)' },
+  { value: 'explicitly_failed', label: 'Failed', color: 'var(--ember)' },
 ]
 
 const CAPABILITY_SUGGESTIONS = [
-  'habitation', 'oxygen_supply', 'co2_removal', 'electrical_power',
+  'habitation', 'co2_removal',
   'thermal_control', 'main_propulsion', 'attitude_control', 'rcs',
   'navigation', 'communications', 'fire_suppression', 'return_capability',
   'emergency_life_support', 'docking',
@@ -45,6 +46,9 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
       type: 'other',
       state: 'operational',
       providesCapabilities: [],
+      powerConsumptionW: defaultEquipmentPowerW('other'),
+      portable: defaultEquipmentPortable('other'),
+      passageUnits: 1,
     })
     setExpandedId(id)
   }
@@ -57,19 +61,19 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
   }
 
   const stateColor = (state: string) =>
-    EQUIPMENT_STATE_OPTIONS.find((o) => o.value === state)?.color ?? '#64748b'
+    EQUIPMENT_STATE_OPTIONS.find((o) => o.value === state)?.color ?? 'var(--ink-3)'
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
+        <span style={{ color: 'var(--ink-2)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
           EQUIPMENT ({equipment.length})
         </span>
         <button
           onClick={handleAdd}
           style={{
-            background: '#1d4ed8',
-            color: '#bfdbfe',
+            background: 'var(--gold-dim)',
+            color: 'var(--gold-bright)',
             border: 'none',
             borderRadius: 4,
             padding: '3px 10px',
@@ -83,7 +87,7 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
       </div>
 
       {equipment.length === 0 && (
-        <div style={{ color: '#475569', fontSize: 12, fontStyle: 'italic', padding: '4px 0' }}>
+        <div style={{ color: 'var(--ink-4)', fontSize: 12, fontStyle: 'italic', padding: '4px 0' }}>
           No equipment assigned
         </div>
       )}
@@ -92,8 +96,8 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
         <div
           key={eq.id}
           style={{
-            background: '#111318',
-            border: '1px solid #2a2d36',
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
             borderRadius: 6,
             marginBottom: 6,
             overflow: 'hidden',
@@ -113,8 +117,10 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
                 flexShrink: 0,
               }}
             />
-            <span style={{ flex: 1, color: '#e2e8f0', fontSize: 12, fontWeight: 500 }}>{eq.name}</span>
-            <span style={{ color: '#64748b', fontSize: 11 }}>{eq.type}</span>
+            <span style={{ flex: 1, color: 'var(--ink)', fontSize: 12, fontWeight: 500 }}>{eq.name}</span>
+            <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>
+              {eq.type} · {eq.powerConsumptionW}W
+            </span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -123,7 +129,7 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#ef4444',
+                color: 'var(--ember)',
                 cursor: 'pointer',
                 fontSize: 14,
                 padding: '0 2px',
@@ -137,7 +143,7 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
 
           {/* Expanded editor */}
           {expandedId === eq.id && (
-            <div style={{ padding: '0 10px 10px', borderTop: '1px solid #1e2128' }}>
+            <div style={{ padding: '0 10px 10px', borderTop: '1px solid var(--surface-3)' }}>
               <label style={labelStyle}>Name</label>
               <input
                 style={inputStyle}
@@ -149,12 +155,55 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
               <select
                 style={inputStyle}
                 value={eq.type}
-                onChange={(e) => updateEquipment(moduleId, eq.id, { type: e.target.value })}
+                onChange={(e) => updateEquipment(moduleId, eq.id, {
+                  type: e.target.value,
+                  powerConsumptionW: defaultEquipmentPowerW(e.target.value),
+                  portable: defaultEquipmentPortable(e.target.value),
+                })}
               >
                 {EQUIPMENT_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+
+              <label style={labelStyle}>Power Consumption (W)</label>
+              <input
+                style={inputStyle}
+                type="number"
+                min="0"
+                step="1"
+                value={eq.powerConsumptionW}
+                onChange={(e) => updateEquipment(moduleId, eq.id, {
+                  powerConsumptionW: Math.max(0, Number(e.target.value) || 0),
+                })}
+              />
+
+              <label style={labelStyle}>Evacuation Passage</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => updateEquipment(moduleId, eq.id, { portable: !eq.portable })}
+                  style={{
+                    ...inputStyle,
+                    color: eq.portable ? 'var(--good)' : 'var(--ink-4)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {eq.portable ? 'PORTABLE' : 'FIXED'}
+                </button>
+                <input
+                  aria-label="Passage units"
+                  title="Crew-equivalent hatch capacity consumed"
+                  style={inputStyle}
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={eq.passageUnits}
+                  onChange={(e) => updateEquipment(moduleId, eq.id, {
+                    passageUnits: Math.max(0.1, Number(e.target.value) || 0.1),
+                  })}
+                />
+              </div>
 
               <label style={labelStyle}>State</label>
               <select
@@ -180,9 +229,9 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
                       key={cap}
                       onClick={() => toggleCapability(eq.id, cap, eq.providesCapabilities)}
                       style={{
-                        background: active ? '#14532d' : '#1e2128',
-                        color: active ? '#86efac' : '#64748b',
-                        border: `1px solid ${active ? '#22c55e' : '#2a2d36'}`,
+                        background: active ? 'var(--good)' : 'var(--surface-3)',
+                        color: active ? 'var(--good)' : 'var(--ink-3)',
+                        border: `1px solid ${active ? 'var(--good)' : 'var(--line)'}`,
                         borderRadius: 4,
                         padding: '2px 8px',
                         fontSize: 11,
@@ -204,7 +253,7 @@ export default function EquipmentEditor({ moduleId, equipment }: Props) {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  color: '#64748b',
+  color: 'var(--ink-3)',
   fontSize: 11,
   marginTop: 8,
   marginBottom: 3,
@@ -212,10 +261,10 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0a0c10',
-  border: '1px solid #2a2d36',
+  background: 'var(--void)',
+  border: '1px solid var(--line)',
   borderRadius: 4,
-  color: '#e2e8f0',
+  color: 'var(--ink)',
   fontSize: 12,
   padding: '4px 8px',
   outline: 'none',

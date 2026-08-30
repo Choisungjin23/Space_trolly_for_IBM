@@ -35,11 +35,18 @@ Look specifically for:
    that count is vacuous and means nothing.
 7. Single-provider or no-provider functions that no agent mentioned.
 8. Claims resting on `source: "derived"` events presented as engine output.
-9. Any fatality, lethality or survival-probability language.
+9. Survival or mortality claims that lack a model-output ref, confuse sampled
+   counts with probabilities, or present ASSUMED estimates as clinical fact.
 
 For each problem emit an issue with severity BLOCKER, MAJOR or MINOR, the agent
 responsible, and a concrete suggested correction. If a finding is sound, do not
 invent a complaint about it.
+
+Report at most 8 issues, the most serious first, and keep each `description` and
+`suggested_correction` to one sentence. An operator acts on a short list of real
+problems; an exhaustive one buries them. A reply that runs past the output limit
+is cut off mid-structure and discarded entirely, so brevity is what gets your
+findings seen at all.
 """
 
 
@@ -80,7 +87,7 @@ class CriticAgent:
                 "Review the following. The machine validator already caught the "
                 "items in `machine_detected_violations`; do not repeat them, but "
                 "do consider what they imply about the agent that produced them."
-                f"\n\n{json.dumps(payload, indent=2, ensure_ascii=False)}"
+                f"\n\n{json.dumps(payload, separators=(',', ':'), ensure_ascii=False)}"
             ),
             schema=_CriticDraft,
         )

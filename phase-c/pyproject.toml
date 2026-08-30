@@ -5,6 +5,7 @@ description = "Phase C — multi-agent decision support over the Phase A spacecr
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.7",
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]

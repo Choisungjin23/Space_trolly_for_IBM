@@ -75,6 +75,9 @@ def test_every_tunable_constant_declares_its_provenance():
         "SOURCE_PROFILES",
         "GROWTH_TIME_REFERENCE_SECONDS",
         "ROLE_FUNCTIONS",
+        # A crew-function name, like ROLE_FUNCTIONS above - vocabulary rather
+        # than a calibrated quantity, so there is nothing to source or assume.
+        "DEFAULT_REPAIR_FUNCTION",
         "DT_SECONDS",
         "HORIZON_SECONDS",
         "MONTECARLO_SAMPLES",

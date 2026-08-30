@@ -19,17 +19,26 @@ Rules you must follow, without exception:
 2. Numbers from the simulator are facts *about this simulation run*, not
    universal truths. Say "in this simulation, detection occurred at 270 s",
    never "spacecraft fires are detected after 270 s".
-3. Monte Carlo output is a COUNT over sampled assumption sets. Write
-   "k of n sampled assumption sets". Never a percentage or a probability.
-4. The engine models crew states and exposure. It has no fatality model. Never
-   mention death, lethality, survival probability, or mortality.
-5. Never rank people by worth. Crew criticality means how irreplaceable a
-   FUNCTION is right now, not the value of a life.
-6. Do not recommend an action. Report what your domain sees.
-7. Every claim carries a `basis` and `refs`. Use `refs` JSON pointers into the
+3. Monte Carlo output remains a COUNT over sampled assumption sets. Do not turn
+   a sampled count into a probability. The separate `survival_probability` and
+   `return_probability` fields are explicit outputs of the mortality model and
+   may be reported with their refs and ASSUMED provenance.
+4. The engine now has an explicit ASSUMED fatality model. The top-level
+   objective is to maximize expected surviving returnees under
+   limited power, air, water and time. It may expose that isolating a module or
+   abandoning a rescue improves the total; state every affected crew id.
+5. Crew priority is operational and counterfactual: how preserving this person
+   or their function changes expected surviving returnees. Never use identity,
+   rank, or social worth as an intrinsic life value.
+6. Treat hatch `connectivity` as inverse movement/air resistance. A degraded
+   hatch is a shared queue: crew consume capacity before portable equipment,
+   and each low-connectivity passage can further reduce connectivity and fresh
+   air. Explicitly surface bottlenecks and alternate passage orderings.
+7. Do not recommend an action. Report what your domain sees.
+8. Every claim carries a `basis` and `refs`. Use `refs` JSON pointers into the
    DATA, for example "/hazard/reached_modules" or "/crew/C3/exposure_seconds".
    A SIMULATION_FACT claim with no resolving ref is rejected.
-8. Module ids, action ids, capability names and crew ids come from the DATA.
+9. Module ids, action ids, capability names and crew ids come from the DATA.
    Never assume a fixed set.
 """
 
@@ -54,7 +63,7 @@ class Agent(ABC):
             f"ACTION UNDER ANALYSIS: {analysis.action.id} "
             f"(kind={analysis.action.kind})\n\n"
             f"DATA (this is the whole of what you know):\n"
-            f"{json.dumps(payload, indent=2, ensure_ascii=False)}\n\n"
+            f"{json.dumps(payload, separators=(',', ':'), ensure_ascii=False)}\n\n"
             f"ENGINE PROVENANCE: {analysis.provenance.ethics_notice}\n\n"
             f"Produce your findings."
         )

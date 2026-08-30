@@ -50,6 +50,26 @@ class CrewOutcome(BaseModel):
     exposure_seconds: float
     smac_dose_fraction: float
     module: str
+    survival_probability: float = 1.0
+    return_probability: float = 1.0
+    abandoned: bool = False
+    priority_score: float = 0.0
+    priority_rank: int | None = None
+    priority_reasons: list[str] = Field(default_factory=list)
+    waiting_for_connection_id: str | None = None
+    escape_capacity_denied: bool = False
+    estimated_survival_minutes: float | None = None
+    resource_risk_reasons: list[str] = Field(default_factory=list)
+
+
+class ResourceOutcome(BaseModel):
+    power_level_w: float
+    power_consumption_w: float
+    power_sufficient: bool
+    air_level_fraction: float
+    water_stored_kg: float
+    water_demand_kg_per_min: float
+    water_sufficient: bool
 
 
 class EquipmentOutcome(BaseModel):
@@ -61,6 +81,22 @@ class EquipmentOutcome(BaseModel):
     powered: bool
     damaged: bool
     repair_progress_seconds: float = 0.0
+    portable: bool = False
+    passage_units: float = 1.0
+    priority_score: float = 0.0
+    priority_rank: int | None = None
+    priority_reasons: list[str] = Field(default_factory=list)
+    evacuated: bool = False
+
+
+class ConnectivityOutcome(BaseModel):
+    connectivity: float
+    base_connectivity: float
+    crew_throughput_per_min: float
+    air_throughput_percent_per_min: float
+    crew_passages: int = 0
+    equipment_passage_units: float = 0.0
+    power_transfer_percent: float = 100.0
 
 
 class CriticalFunction(BaseModel):
@@ -123,9 +159,14 @@ class ActionAnalysis(BaseModel):
     hazard: Hazard
     crew: dict[str, CrewOutcome] = Field(default_factory=dict)
     crew_counts: dict[str, int] = Field(default_factory=dict)
+    resources: dict[str, ResourceOutcome] = Field(default_factory=dict)
+    expected_survivors: float = 0.0
+    expected_returnees: float = 0.0
     systems: dict[str, SystemState] = Field(default_factory=dict)
     system_reasons: dict[str, str] = Field(default_factory=dict)
     equipment: dict[str, EquipmentOutcome] = Field(default_factory=dict)
+    connectivity: dict[str, ConnectivityOutcome] = Field(default_factory=dict)
+    escape_target: dict[str, str | int | None] | None = None
     capabilities: dict[str, CapabilityState] = Field(default_factory=dict)
     critical_functions: list[CriticalFunction] = Field(default_factory=list)
     events: list[TimelineEvent] = Field(default_factory=list)
@@ -134,11 +175,7 @@ class ActionAnalysis(BaseModel):
 
 
 class CrewCriticality(BaseModel):
-    """Leave-one-out measurement plus the assumed FMECA-style weight.
-
-    Neither is a valuation of a life — this is function irreplaceability under
-    the current situation (contract §5).
-    """
+    """Leave-one-out contribution to expected crew return plus role demand."""
 
     crew_id: str
     role: str

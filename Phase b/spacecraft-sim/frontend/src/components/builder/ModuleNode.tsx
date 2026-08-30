@@ -1,11 +1,14 @@
 /**
- * ModuleNode — custom React Flow node for spacecraft modules.
+ * ModuleNode — one pressure volume on the chart.
  *
- * Visual appearance:
- * - Green border: no emergency
- * - Amber border: emergency in adjacent module
- * - Red border + glow: this module has the active fire emergency
- * - ISOLATED label (future Phase A result)
+ * A restrained instrument card, not a dashboard tile. The architecture view
+ * stays quiet: name, class, and the two counts that change what an action can
+ * do. Warm colour is spent only where a hazard is actually present, so the eye
+ * goes straight to the emergency instead of scanning a wall of coloured boxes.
+ *
+ * Module class is carried by a thin rule and a word, never by hue alone — six
+ * module hues are indistinguishable under common colour-vision deficiencies,
+ * and the label is what a reader identifies the module by anyway.
  */
 
 import { memo } from 'react'
@@ -27,153 +30,201 @@ const MODULE_TYPE_LABELS: Record<string, string> = {
   other: 'MODULE',
 }
 
-const MODULE_TYPE_COLORS: Record<string, string> = {
-  habitat: '#3b82f6',
-  storage: '#8b5cf6',
-  life_support: '#06b6d4',
-  power: '#f59e0b',
-  propulsion: '#f97316',
-  other: '#64748b',
+const HANDLE: React.CSSProperties = {
+  background: 'var(--surface-3)',
+  border: '1px solid var(--ink-4)',
+  width: 7,
+  height: 7,
 }
 
 function ModuleNode({ data, selected }: NodeProps) {
   const { module, emergency } = data as ModuleNodeData
 
   const hasEmergency = emergency?.affectedModuleId === module.id
-  const typeColor = MODULE_TYPE_COLORS[module.type] ?? '#64748b'
   const typeLabel = MODULE_TYPE_LABELS[module.type] ?? 'MODULE'
 
-  let borderColor = '#2a2d36'
-  let glowStyle = ''
-
-  if (hasEmergency) {
-    borderColor = '#ef4444'
-    glowStyle = '0 0 12px rgba(239, 68, 68, 0.6)'
-  } else if (selected) {
-    borderColor = '#3b82f6'
-  }
+  const border = hasEmergency
+    ? 'var(--ember)'
+    : selected
+      ? 'var(--gold)'
+      : 'var(--line)'
 
   return (
     <div
       style={{
-        background: '#1e2128',
-        border: `2px solid ${borderColor}`,
-        borderRadius: 8,
-        minWidth: 160,
-        maxWidth: 200,
-        fontFamily: '-apple-system, "Segoe UI", system-ui, sans-serif',
-        boxShadow: glowStyle || (selected ? '0 0 8px rgba(59, 130, 246, 0.4)' : 'none'),
+        // A burning module sits on warm ground, not the neutral surface: the
+        // colour has to reach the eye before the label does.
+        background: hasEmergency
+          ? 'linear-gradient(180deg, rgba(224,80,63,.16) 0%, rgba(224,80,63,.05) 55%, var(--surface) 100%)'
+          : 'var(--surface)',
+        border: `1px solid ${border}`,
+        borderRadius: 3,
+        minWidth: 168,
+        maxWidth: 208,
+        fontFamily: 'var(--font-ui)',
+        boxShadow: selected && !hasEmergency
+          ? '0 0 0 1px rgba(194,161,91,.20)'
+          : 'none',
+        animation: hasEmergency ? 'circe-burn 2.8s ease-in-out infinite' : undefined,
         cursor: 'pointer',
-        position: 'relative',
         overflow: 'hidden',
+        transition: 'border-color .16s, box-shadow .16s',
       }}
     >
-      {/* Top accent bar */}
+      {/* Heat band: thicker and hotter when this module is the emergency. */}
       <div
         style={{
-          height: 3,
-          background: hasEmergency ? '#ef4444' : typeColor,
-          transition: 'background 0.2s',
+          height: hasEmergency ? 3 : 1,
+          background: hasEmergency
+            ? 'linear-gradient(90deg, var(--ember) 0%, var(--ember-bright) 50%, var(--amber) 100%)'
+            : 'var(--ink-4)',
+          opacity: hasEmergency ? 1 : 0.6,
         }}
       />
 
-      {/* Header */}
-      <div
-        style={{
-          padding: '8px 12px 4px',
-          borderBottom: '1px solid #2a2d36',
-        }}
-      >
+      <div style={{ padding: '10px 12px 9px' }}>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            marginBottom: 2,
+            gap: 8,
+            justifyContent: 'space-between',
           }}
         >
+          <span
+            style={{
+              color: 'var(--ink)',
+              fontWeight: hasEmergency ? 600 : 500,
+              fontSize: 13.5,
+              letterSpacing: '.01em',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {module.name}
+          </span>
+
           {hasEmergency && (
             <span
               style={{
-                background: '#7f1d1d',
-                color: '#fca5a5',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'var(--ember)',
+                color: '#1a0705',
+                fontFamily: 'var(--font-mono)',
                 fontSize: 9,
                 fontWeight: 700,
-                padding: '1px 5px',
-                borderRadius: 3,
-                letterSpacing: '0.05em',
+                letterSpacing: '.14em',
+                padding: '2px 6px',
+                borderRadius: 2,
                 flexShrink: 0,
               }}
             >
-              🔥 FIRE
+              {emergency?.type === 'electronic_short' ? '⚡ SHORT' : <><FlameMark /> FIRE</>}
             </span>
           )}
         </div>
+
         <div
           style={{
-            color: '#e2e8f0',
-            fontWeight: 600,
-            fontSize: 13,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {module.name}
-        </div>
-        <div
-          style={{
-            color: typeColor,
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            marginTop: 1,
+            color: hasEmergency ? 'var(--ember-bright)' : 'var(--ink-3)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9.5,
+            letterSpacing: '.14em',
+            marginTop: 4,
           }}
         >
           {typeLabel}
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ padding: '6px 12px 8px', fontSize: 12, color: '#94a3b8' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Crew</span>
-          <span style={{ color: '#e2e8f0', fontWeight: 500 }}>
-            {module.crew.length}
-          </span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-          <span>Equipment</span>
-          <span style={{ color: '#e2e8f0', fontWeight: 500 }}>
-            {module.equipment.length}
-          </span>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: '1px solid var(--line-soft)', padding: '5px 8px', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 8.5 }}>
+        <ResourceStat color="#facc15" label="PWR" value={`${module.powerLevelW ?? 0}W`} />
+        <ResourceStat color="#7dd3fc" label="AIR" value={`${(((module.oxygenFraction ?? 0.25) * 100)).toFixed(1)}%`} />
+        <ResourceStat color="#2563eb" label="H₂O" value={`${(module.waterStoredKg ?? 0).toFixed(2)}kg`} />
       </div>
 
-      {/* React Flow handles */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={{ background: '#3b82f6', border: '2px solid #0a0c10', width: 10, height: 10 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{ background: '#3b82f6', border: '2px solid #0a0c10', width: 10, height: 10 }}
-      />
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top-target"
-        style={{ background: '#3b82f6', border: '2px solid #0a0c10', width: 10, height: 10 }}
-      />
+      {/* Occupancy — the two figures that change what an action can achieve */}
+      <div
+        style={{
+          display: 'flex',
+          borderTop: `1px solid ${hasEmergency ? 'var(--ember-wash)' : 'var(--line-soft)'}`,
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10.5,
+        }}
+      >
+        <Stat label="CREW" value={module.crew.length} alight={hasEmergency} />
+        <div style={{ width: 1, background: 'var(--line-soft)' }} />
+        <Stat label="SYS" value={module.equipment.length} alight={hasEmergency} />
+      </div>
+
+      <Handle type="target" position={Position.Left} style={HANDLE} />
+      <Handle type="source" position={Position.Right} style={HANDLE} />
+      <Handle type="target" position={Position.Top} id="top-target" style={HANDLE} />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom-source"
-        style={{ background: '#3b82f6', border: '2px solid #0a0c10', width: 10, height: 10 }}
+        style={HANDLE}
       />
     </div>
+  )
+}
+
+/** A small flame, drawn rather than typed, so it matches the icon set. */
+function FlameMark() {
+  return (
+    <svg width="7" height="9" viewBox="0 0 7 9" fill="currentColor" aria-hidden>
+      <path d="M3.5 0C3.5 2 1.4 2.3 1.4 4.6a2.1 2.1 0 0 0 4.2 0C5.6 3.1 4.3 2.6 4.3 1.5 4.3 2.6 3.5 2.7 3.5 0z" />
+      <path d="M3.5 9a1.5 1.5 0 0 1-1.5-1.5c0-1 1.5-1.6 1.5-2.8 0 1.2 1.5 1.8 1.5 2.8A1.5 1.5 0 0 1 3.5 9z" opacity=".65" />
+    </svg>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  alight,
+}: {
+  label: string
+  value: number
+  alight?: boolean
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        padding: '6px 12px 7px',
+      }}
+    >
+      <span style={{ color: 'var(--ink-3)', letterSpacing: '.12em' }}>{label}</span>
+      <span
+        style={{
+          color: value === 0
+            ? 'var(--ink-4)'
+            : alight
+              ? 'var(--ember-bright)'
+              : 'var(--ink)',
+          fontWeight: 500,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function ResourceStat({ color, label, value }: { color: string; label: string; value: string }) {
+  return (
+    <span style={{ color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>
+      <span style={{ color }}>{label}</span> {value}
+    </span>
   )
 }
 

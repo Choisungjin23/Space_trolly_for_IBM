@@ -16,7 +16,11 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from app.adapters.phase_a_simulator import to_phase_a_scenario
+from app.adapters.phase_a_simulator import (
+    _action_pairs,
+    to_phase_a_action_id,
+    to_phase_a_scenario,
+)
 from app.api.schemas import EmergencyConfigIn, ScenarioIn
 
 _DEFAULT_PHASE_C_SRC = Path(__file__).resolve().parents[5] / "phase-c" / "src"
@@ -66,6 +70,7 @@ def analyze(
     samples: int = 20,
     seed: Optional[int] = 42,
     llm=None,
+    on_progress=None,
 ) -> dict:
     """Run the Phase C pipeline over a Phase B scenario. Returns a
     DecisionPackage as a plain dict, ready for JSON."""
@@ -74,9 +79,26 @@ def analyze(
 
     pa_scenario = to_phase_a_scenario(scenario, emergency)
 
+    # The caller is Phase B (and ultimately the results table), so the focus
+    # action arrives under its Phase B id. Phase C indexes by the engine's id.
+    if focus_action_id is not None:
+        focus_action_id = to_phase_a_action_id(scenario, emergency, focus_action_id)
+
     provider = PhaseASimulationAdapter(default_samples=samples)
     case = provider.analyze_case(pa_scenario, samples=samples, seed=seed)
 
     client = llm if llm is not None else _build_llm(True)
     orchestrator = Orchestrator(client, focus_action_id=focus_action_id)
-    return orchestrator.run(case).model_dump(mode="json")
+    package = orchestrator.run(case, on_progress=on_progress).model_dump(mode="json")
+
+    # Phase C names actions the engine's way (`isolate:mod-storage`); the
+    # results table names them Phase B's way (`isolate_module_mod-storage`).
+    # Carrying the mapping lets the UI line a recommendation up with its
+    # simulated outcome instead of re-deriving the translation client-side.
+    package.setdefault("provenance", {})["action_id_map"] = {
+        pa_action.id: spec.id for spec, pa_action, _ in _action_pairs(scenario, emergency)
+    }
+    package["provenance"]["decision_objective"] = (
+        "maximize_expected_surviving_returnees_under_resource_constraints"
+    )
+    return package

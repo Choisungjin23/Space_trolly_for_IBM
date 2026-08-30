@@ -64,7 +64,9 @@ never actuate); real-time/streaming simulation; multi-emergency types.
 - The simulator produces numbers; agents never invent them.
 - Monte Carlo output is *counts over sampled assumption sets*, never probability.
 - Simulator values are simulation facts, never universal NASA truths.
-- No fatality estimates, no numerical human valuation.
+- Survival and return estimates must resolve to the explicit ASSUMED exposure
+  model. Prioritization maximizes expected surviving returnees and must never
+  be presented as an intrinsic valuation of people.
 - Capability names, action ids, and module ids are read dynamically, never hardcoded.
 - The human is the final decision-maker.
 
@@ -257,11 +259,12 @@ produced this" from "this depends on Phase A assumptions" — it is handed the
 spread rates, growth rates, detection times, physical constants.
 
 **6.2 Crew Safety** — reads `crew` (dict keyed by crew_id), `crew_counts`, crew
-events, and `criticality`. Reasons about exposure, evacuation feasibility, trapped
-state, module transitions, and loss-of-provider consequences. Forbidden: fatality
-probabilities and any ranking of people by worth. Carries the contract's framing that
-criticality is *function irreplaceability under the current situation*, not the value
-of a life.
+events, resource state, modeled survival/return estimates, and `criticality`.
+Reasons about exposure, evacuation feasibility, trapped state, module transitions,
+and loss-of-provider consequences. It may prioritize or identify an explicit
+abandonment alternative by counterfactual expected-returnee impact, but never by
+intrinsic human worth. Criticality remains *function irreplaceability under the
+current situation*, not the value of a life.
 
 **6.3 Systems** *(proposed — spec truncated)* — reads `systems`, `system_reasons`,
 `equipment`. The load-bearing distinction it must preserve is Phase A's
@@ -330,8 +333,9 @@ complete set of numbers an agent is allowed to state.
 3. Every `SIMULATION_FACT` claim must carry at least one `refs` pointer that resolves.
 4. Regex gate: `%`, "probability", "likelihood", or "chance" adjacent to a `sampled.*`
    reference is rejected, with the `k of n` rewrite offered.
-5. Banned-phrase gate: "BEST ACTION" outside the Coordinator; any fatality or
-   survival-probability phrasing anywhere.
+5. Banned-phrase gate: "BEST ACTION" outside the Coordinator. Survival or
+   mortality claims are allowed only when grounded in the modeled fields or a
+   cited source; sampled-run counts still cannot be relabelled as probability.
 
 Failures route to the Critic and appear in the output. **Nothing is silently edited** —
 the operator sees that an agent attempted an unsupported assertion.

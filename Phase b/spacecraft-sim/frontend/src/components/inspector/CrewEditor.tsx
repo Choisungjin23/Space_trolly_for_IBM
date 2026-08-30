@@ -45,14 +45,14 @@ export default function CrewEditor({ moduleId, crew }: Props) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
+        <span style={{ color: 'var(--ink-2)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
           CREW ({crew.length})
         </span>
         <button
           onClick={handleAdd}
           style={{
-            background: '#1d4ed8',
-            color: '#bfdbfe',
+            background: 'var(--gold-dim)',
+            color: 'var(--gold-bright)',
             border: 'none',
             borderRadius: 4,
             padding: '3px 10px',
@@ -66,7 +66,7 @@ export default function CrewEditor({ moduleId, crew }: Props) {
       </div>
 
       {crew.length === 0 && (
-        <div style={{ color: '#475569', fontSize: 12, fontStyle: 'italic', padding: '4px 0' }}>
+        <div style={{ color: 'var(--ink-4)', fontSize: 12, fontStyle: 'italic', padding: '4px 0' }}>
           No crew assigned
         </div>
       )}
@@ -75,8 +75,8 @@ export default function CrewEditor({ moduleId, crew }: Props) {
         <div
           key={c.id}
           style={{
-            background: '#111318',
-            border: '1px solid #2a2d36',
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
             borderRadius: 6,
             marginBottom: 6,
             overflow: 'hidden',
@@ -93,9 +93,9 @@ export default function CrewEditor({ moduleId, crew }: Props) {
             }}
             onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
           >
-            <span style={{ color: '#3b82f6', fontSize: 13 }}>👤</span>
-            <span style={{ flex: 1, color: '#e2e8f0', fontSize: 12, fontWeight: 500 }}>{c.name}</span>
-            <span style={{ color: '#64748b', fontSize: 11 }}>{c.role}</span>
+            <span style={{ color: 'var(--gold)', fontSize: 13 }}>👤</span>
+            <span style={{ flex: 1, color: 'var(--ink)', fontSize: 12, fontWeight: 500 }}>{c.name}</span>
+            <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>{c.role}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -104,7 +104,7 @@ export default function CrewEditor({ moduleId, crew }: Props) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#ef4444',
+                color: 'var(--ember)',
                 cursor: 'pointer',
                 fontSize: 14,
                 padding: '0 2px',
@@ -118,7 +118,7 @@ export default function CrewEditor({ moduleId, crew }: Props) {
 
           {/* Expanded editor */}
           {expandedId === c.id && (
-            <div style={{ padding: '0 10px 10px', borderTop: '1px solid #1e2128' }}>
+            <div style={{ padding: '0 10px 10px', borderTop: '1px solid var(--surface-3)' }}>
               <label style={labelStyle}>Name</label>
               <input
                 style={inputStyle}
@@ -146,9 +146,9 @@ export default function CrewEditor({ moduleId, crew }: Props) {
                       key={fn}
                       onClick={() => toggleFunction(c.id, fn, c.providesFunctions)}
                       style={{
-                        background: active ? '#1d4ed8' : '#1e2128',
-                        color: active ? '#bfdbfe' : '#64748b',
-                        border: `1px solid ${active ? '#3b82f6' : '#2a2d36'}`,
+                        background: active ? 'var(--gold-dim)' : 'var(--surface-3)',
+                        color: active ? 'var(--gold-bright)' : 'var(--ink-3)',
+                        border: `1px solid ${active ? 'var(--gold)' : 'var(--line)'}`,
                         borderRadius: 4,
                         padding: '2px 8px',
                         fontSize: 11,
@@ -162,8 +162,8 @@ export default function CrewEditor({ moduleId, crew }: Props) {
               </div>
               {c.providesFunctions.filter((f) => !FUNCTION_SUGGESTIONS.includes(f)).map((fn) => (
                 <span key={fn} style={{
-                  background: '#1d4ed8',
-                  color: '#bfdbfe',
+                  background: 'var(--gold-dim)',
+                  color: 'var(--gold-bright)',
                   borderRadius: 4,
                   padding: '2px 8px',
                   fontSize: 11,
@@ -180,7 +180,7 @@ export default function CrewEditor({ moduleId, crew }: Props) {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  color: '#64748b',
+  color: 'var(--ink-3)',
   fontSize: 11,
   marginTop: 8,
   marginBottom: 3,
@@ -188,10 +188,10 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0a0c10',
-  border: '1px solid #2a2d36',
+  background: 'var(--void)',
+  border: '1px solid var(--line)',
   borderRadius: 4,
-  color: '#e2e8f0',
+  color: 'var(--ink)',
   fontSize: 12,
   padding: '4px 8px',
   outline: 'none',
