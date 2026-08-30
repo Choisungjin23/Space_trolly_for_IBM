@@ -1,7 +1,7 @@
 # Phase A — Output Contract (as built, 2026-08-22)
 
 Integration specification for Phase B (UI) and Phase C (multi-agent AI).
-Generated from the actual implementation in `spacecraft-sim/src/spacecraft_sim/`,
+Generated from the actual implementation in `phase-a/src/spacecraft_sim/`,
 not from a plan. Every JSON block below is real output from
 `examples/demo_spacecraft.json`.
 

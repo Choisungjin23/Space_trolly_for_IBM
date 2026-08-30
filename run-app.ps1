@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backendDir = Join-Path $repoRoot "phase-b\spacecraft-sim\backend"
 $frontendDir = Join-Path $repoRoot "phase-b\spacecraft-sim\frontend"
-$phaseADir = Join-Path $repoRoot "spacecraft-sim"
+$phaseADir = Join-Path $repoRoot "phase-a"
 $phaseCDir = Join-Path $repoRoot "phase-c"
 $venvDir = Join-Path $backendDir ".venv"
 $venvPython = Join-Path $venvDir "Scripts\python.exe"

@@ -9,7 +9,7 @@ Public interface: generate_actions() + simulate().
 
 Locating Phase A: `import spacecraft_sim` is tried first (pip install -e).
 If that fails, the path in the SPACECRAFT_SIM_SRC environment variable is
-used, then the default sibling checkout `<...>/Claude/spacecraft-sim/src`.
+used, then the default sibling checkout `<repo>/phase-a/src`.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from typing import Optional
 
 # ── Phase A import bootstrap ────────────────────────────────────────────────
 
-_DEFAULT_PHASE_A_SRC = Path(__file__).resolve().parents[5] / "spacecraft-sim" / "src"
+_DEFAULT_PHASE_A_SRC = Path(__file__).resolve().parents[5] / "phase-a" / "src"
 
 try:
     import spacecraft_sim  # noqa: F401

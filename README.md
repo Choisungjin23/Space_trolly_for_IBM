@@ -16,9 +16,9 @@ The operator makes the final call.
 
 | Folder | Phase | What it is | Tests |
 |---|---|---|---|
-| [`spacecraft-sim/`](spacecraft-sim/) | **A** | Real-unit stochastic emergency engine (Python library + CLI) | 132 |
+| [`phase-a/`](phase-a/) | **A** | Real-unit stochastic emergency engine (Python library + CLI) | 132 |
 | [`phase-b/`](phase-b/) | **B** | Product layer — React Flow builder + FastAPI | 78 |
-| [`phase-c/`](phase-c/) | **C** | Multi-agent decision support over Phase A | 141 |
+| [`phase-c/`](phase-c/) | **C** | Multi-agent decision support over Phase A | 143 |
 
 **353 tests, all passing.** None require network or credentials.
 
@@ -29,11 +29,7 @@ New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 - [`SETUP.md`](SETUP.md) — install, run, configure credentials, run the tests.
 - [`phase-a-contract.md`](phase-a-contract.md) — **the integration contract.** Real
   output shapes from the built engine. This is what B and C were written against.
-- [`docs/beginner-guide.html`](docs/beginner-guide.html) — what the whole system
-  does, written for someone who has never coded. Includes a glossary.
-- [`docs/phase-a-explained.html`](docs/phase-a-explained.html) — the engine taken
-  apart: NASA data, smoke transport, crew and equipment weighting.
-- [`spacecraft-sim/docs/nasa-calibration-report.html`](spacecraft-sim/docs/nasa-calibration-report.html)
+- [`phase-a/docs/nasa-calibration-report.html`](phase-a/docs/nasa-calibration-report.html)
   — how the engine's constants were mapped to NASA primary sources.
 
 ---
@@ -81,7 +77,7 @@ Requires Python 3.11+ and a Vite-supported Node.js release (20.19+ or 22.12+).
 ### 1. The engine (Phase A)
 
 ```bash
-cd spacecraft-sim
+cd phase-a
 pip install -e .
 python -m pytest
 python -m spacecraft_sim.cli compare examples/demo_spacecraft.json
@@ -111,7 +107,7 @@ do not want it to open a browser.
 cd "phase-b/spacecraft-sim/backend"
 python3 -m venv .venv-macos
 source .venv-macos/bin/activate
-pip install -r requirements.txt -e ../../../spacecraft-sim -e "../../../phase-c[granite]"
+pip install -r requirements.txt -e ../../../phase-a -e "../../../phase-c[granite]"
 uvicorn app.main:app --reload
 ```
 

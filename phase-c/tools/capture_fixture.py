@@ -3,7 +3,7 @@
 Run once; commit the result. Every agent test then replays real shapes offline.
 
     python tools/capture_fixture.py \
-        ../spacecraft-sim/examples/demo_spacecraft.json \
+        ../phase-a/examples/demo_spacecraft.json \
         tests/fixtures/demo_case.json --samples 20 --seed 42
 """
 

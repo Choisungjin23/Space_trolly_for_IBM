@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 # ── Phase A import bootstrap ────────────────────────────────────────────────
-_DEFAULT_PHASE_A_SRC = Path(__file__).resolve().parents[4] / "spacecraft-sim" / "src"
+_DEFAULT_PHASE_A_SRC = Path(__file__).resolve().parents[4] / "phase-a" / "src"
 
 try:  # pragma: no cover - depends on environment
     import spacecraft_sim  # noqa: F401

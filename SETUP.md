@@ -53,7 +53,7 @@ python -m venv .venv                 # macOS/Linux: python3 -m venv .venv
 .venv\Scripts\Activate.ps1            # macOS/Linux: source .venv/bin/activate
 
 pip install -r requirements.txt
-pip install -e ../../../spacecraft-sim          # Phase A engine
+pip install -e ../../../phase-a                 # Phase A engine
 pip install -e "../../../phase-c[granite]"      # Phase C advisor
 
 uvicorn app.main:app --reload
@@ -81,7 +81,7 @@ Three independent suites. All of them are offline and deterministic.
 
 ```bash
 # Phase A — the engine                      (~2 s)
-cd spacecraft-sim && python -m pytest
+cd phase-a && python -m pytest
 
 # Phase C — agents, grounding, contracts    (~3 s)
 cd phase-c && python -m pytest
@@ -193,7 +193,7 @@ One full analysis is seven calls and takes roughly 100–170 seconds.
 
 | Symptom | Cause |
 |---|---|
-| Backend exits on start with an import error naming `spacecraft_sim` | Phase A is not installed in this environment. Run the two `pip install -e` lines in §2, or set `SPACECRAFT_SIM_SRC` to `<repo>/spacecraft-sim/src`. |
+| Backend exits on start with an import error naming `spacecraft_sim` | Phase A is not installed in this environment. Run the two `pip install -e` lines in §2, or set `SPACECRAFT_SIM_SRC` to `<repo>/phase-a/src`. |
 | `GET /` reports an adapter other than `PhaseASimulatorAdapter` | You are on an old checkout. There is only one simulator now. |
 | Advisor tab is inactive | `GET /api/advisor/status` says why. Usually a missing or wrong `.env`; run `doctor --access`. |
 | `404 not found` from watsonx | `WATSONX_PROJECT_ID` is from a different region than `WATSONX_URL`. |

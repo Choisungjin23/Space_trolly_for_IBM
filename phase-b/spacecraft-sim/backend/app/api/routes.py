@@ -42,7 +42,7 @@ except ImportError as exc:  # pragma: no cover - depends on environment
     raise ImportError(
         "The Phase A engine (spacecraft_sim) could not be imported, so the "
         "backend has no simulator to answer with. Install it with "
-        "`pip install -e <repo>/spacecraft-sim`, or point SPACECRAFT_SIM_SRC "
+        "`pip install -e <repo>/phase-a`, or point SPACECRAFT_SIM_SRC "
         f"at its src directory. Underlying error: {exc}"
     ) from exc
 

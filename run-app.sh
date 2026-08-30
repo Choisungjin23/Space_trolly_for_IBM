@@ -31,7 +31,7 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 BACKEND_DIR="$SCRIPT_DIR/phase-b/spacecraft-sim/backend"
 FRONTEND_DIR="$SCRIPT_DIR/phase-b/spacecraft-sim/frontend"
-PHASE_A_DIR="$SCRIPT_DIR/spacecraft-sim"
+PHASE_A_DIR="$SCRIPT_DIR/phase-a"
 PHASE_C_DIR="$SCRIPT_DIR/phase-c"
 VENV_DIR="$BACKEND_DIR/.venv-macos"
 VENV_PYTHON="$VENV_DIR/bin/python"

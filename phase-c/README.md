@@ -31,7 +31,7 @@ python -m pytest            # 143 tests, no network, no credentials
 ```
 
 Phase A is located automatically: an installed `spacecraft_sim` first, then
-`$SPACECRAFT_SIM_SRC`, then the sibling `../spacecraft-sim/src`.
+`$SPACECRAFT_SIM_SRC`, then the sibling `../phase-a/src`.
 
 ## The adapter boundary
 
