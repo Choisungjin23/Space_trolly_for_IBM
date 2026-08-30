@@ -97,6 +97,16 @@ def simulate(
     applied = action is None
     detected_at: float | None = None
 
+    # Return capability is judged at the end of the horizon (see below), so a
+    # loss that is repaired before then costs nothing. That is defensible — the
+    # return flight happens after the emergency — but it is invisible in the
+    # result, which makes a marginal outcome look identical to a comfortable
+    # one. These counters measure the gap without changing the judgement.
+    return_downtime_seconds = 0.0
+    return_first_lost_at: float | None = None
+    return_restored_at: float | None = None
+    return_was_available = True
+
     steps = int(horizon / dt)
     t = 0.0
     for _ in range(steps):
@@ -120,6 +130,19 @@ def simulate(
         update_connectivity(sc, dt)
         update_resources(sc, dt)
         evaluate_systems(sc)
+
+        return_available_now = (
+            evaluate_capabilities(sc).get(sc.return_capability_name, "AVAILABLE")
+            != "UNAVAILABLE"
+        )
+        if not return_available_now:
+            return_downtime_seconds += dt
+            if return_first_lost_at is None:
+                return_first_lost_at = t
+        elif not return_was_available:
+            return_restored_at = t
+        return_was_available = return_available_now
+
         update_crew(sc, t, dt, response_seconds)
         update_equipment_evacuation(sc)
 
@@ -173,7 +196,12 @@ def simulate(
     facilities_down = damaged_facilities(sc)
 
     capabilities = evaluate_capabilities(sc)
-    return_available = capabilities.get("RETURN", "AVAILABLE") != "UNAVAILABLE"
+    # The scenario names the capability that means "can still come home"; an
+    # undeclared one defaults to available, so a scenario that models no
+    # return capability does not silently zero everyone's return probability.
+    return_available = (
+        capabilities.get(sc.return_capability_name, "AVAILABLE") != "UNAVAILABLE"
+    )
     for crew_member in sc.crew:
         crew_member.return_probability = (
             crew_member.survival_probability if return_available and not crew_member.abandoned else 0.0
@@ -241,6 +269,20 @@ def simulate(
         },
         "expected_survivors": round(sum(c.survival_probability for c in sc.crew), 6),
         "expected_returnees": round(sum(c.return_probability for c in sc.crew), 6),
+        # How the return verdict above was reached. `final_state` is what
+        # decides `expected_returnees`; the rest says how close the run came to
+        # a different answer, and whether the scenario declared the capability
+        # at all — an undeclared one is not judged, so returnees then equal
+        # survivors by construction rather than by evidence.
+        "return_capability": {
+            "name": sc.return_capability_name,
+            "declared": sc.return_capability_name in sc.capabilities,
+            "final_state": capabilities.get(sc.return_capability_name),
+            "available_at_end": return_available,
+            "downtime_seconds": round(return_downtime_seconds, 1),
+            "first_lost_at_seconds": return_first_lost_at,
+            "restored_at_seconds": return_restored_at,
+        },
         "connectivity": {
             connection.id: {
                 "connectivity": round(connection.connectivity, 3),

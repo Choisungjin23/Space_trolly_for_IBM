@@ -1,12 +1,18 @@
 """
 FastAPI routes for Phase B.
 
-Three endpoints:
+Endpoints:
   GET  /api/templates          — list available scenario templates
   GET  /api/templates/{id}     — full scenario JSON for a given template
-  POST /api/simulate           — run mock simulation against a user scenario
+  POST /api/simulate           — run the Phase A engine over a user scenario
+  POST /api/simulate/stream    — the same run, with per-action progress (SSE)
+  GET  /api/advisor/status     — whether the Phase C multi-agent layer can run
+  POST /api/analyze            — run the Phase C pipeline
+  POST /api/analyze/stream     — the same analysis, with per-agent progress (SSE)
 
-Route handlers are thin. All logic is in app/adapters/mock_simulator.py.
+Route handlers are thin. Simulation logic lives in
+app/adapters/phase_a_simulator.py, advisory logic in
+app/adapters/phase_c_advisor.py.
 """
 
 from __future__ import annotations
@@ -27,16 +33,20 @@ from app.api.schemas import (
     TemplateSummary,
 )
 
-# Prefer the real Phase A engine; fall back to the mock only when the
-# spacecraft_sim package cannot be located (see phase_a_simulator's bootstrap).
+# The Phase A engine is the only simulator. There is deliberately no fallback:
+# a stand-in that silently answers with different physics is worse than a
+# server that will not start, because the results look equally authoritative.
 try:
     from app.adapters.phase_a_simulator import simulate
+except ImportError as exc:  # pragma: no cover - depends on environment
+    raise ImportError(
+        "The Phase A engine (spacecraft_sim) could not be imported, so the "
+        "backend has no simulator to answer with. Install it with "
+        "`pip install -e <repo>/spacecraft-sim`, or point SPACECRAFT_SIM_SRC "
+        f"at its src directory. Underlying error: {exc}"
+    ) from exc
 
-    ACTIVE_ADAPTER = "PhaseASimulatorAdapter"
-except ImportError:  # pragma: no cover - depends on environment
-    from app.adapters.mock_simulator import simulate
-
-    ACTIVE_ADAPTER = "MockSimulatorAdapter (Phase A engine not found)"
+ACTIVE_ADAPTER = "PhaseASimulatorAdapter"
 
 router = APIRouter()
 
@@ -79,14 +89,11 @@ def get_template(template_id: str) -> dict:
 @router.post("/simulate", response_model=SimulationResponse)
 def run_simulation(request: SimulateRequest) -> SimulationResponse:
     """
-    Run mock simulation for the user-supplied scenario.
+    Run the Phase A engine over the user-supplied scenario.
 
-    The scenario comes entirely from the request body — no server-side
-    fixed topology. The MockSimulatorAdapter generates actions and results
-    from the graph described in the request.
-
-    When Phase A ships, replace MockSimulatorAdapter with PhaseASimulatorAdapter
-    implementing the same interface.
+    The scenario comes entirely from the request body — no server-side fixed
+    topology. Candidate actions are generated from the graph described in the
+    request, and every action is simulated as an independent counterfactual.
     """
     try:
         return simulate(

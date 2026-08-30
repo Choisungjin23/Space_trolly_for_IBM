@@ -137,10 +137,25 @@ class Orchestrator:
             case, findings, critic_review, evidence
         )
         done += 1
+        # Where the recommended action sits in the payload, so a ref that omits
+        # the action index can still be checked against the right subtree.
+        recommended_index = next(
+            (
+                index
+                for index, analysis in enumerate(case.actions)
+                if analysis.action.id == recommendation.recommended_action_id
+            ),
+            None,
+        )
         recommendation_violations = validate_recommendation(
             recommendation,
             FactRegistry.from_payload(
                 self.coordinator.payload(case, findings, critic_review, evidence)
+            ),
+            action_prefix=(
+                f"/actions/{recommended_index}"
+                if recommended_index is not None
+                else None
             ),
         )
         critic_review.grounding_violations.extend(recommendation_violations)

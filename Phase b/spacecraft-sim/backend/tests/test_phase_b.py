@@ -20,7 +20,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.adapters.mock_simulator import generate_actions, simulate
+from app.adapters.phase_a_simulator import generate_actions, simulate
 from app.api.schemas import (
     ConnectionIn,
     EmergencyConfigIn,
@@ -137,156 +137,6 @@ def test_equipment_power_defaults_by_type_and_source_capabilities_are_removed():
     )
     assert equipment.powerConsumptionW == 25
     assert equipment.providesCapabilities == ["habitation"]
-
-
-class TestGenerateActions:
-    def test_do_nothing_always_present(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        actions = generate_actions(scenario, emergency)
-        ids = [a.id for a in actions]
-        assert "do_nothing" in ids
-
-    def test_close_connection_generated_from_graph(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        actions = generate_actions(scenario, emergency)
-        ids = [a.id for a in actions]
-        # Should have a close action for the open connection
-        assert any("close_conn" in aid for aid in ids)
-
-    def test_isolate_module_generated(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        actions = generate_actions(scenario, emergency)
-        ids = [a.id for a in actions]
-        assert any("isolate_module" in aid for aid in ids)
-
-    def test_no_m1_m2_in_action_ids(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        actions = generate_actions(scenario, emergency)
-        for action in actions:
-            assert "m1" not in action.id.lower()
-            assert "m2" not in action.id.lower()
-
-    def test_actions_reference_arbitrary_ids(self):
-        """Action IDs must contain the actual module/connection IDs, not hard-coded names."""
-        scenario, emergency = make_minimal_scenario("alpha")
-        actions = generate_actions(scenario, emergency)
-        non_trivial = [a for a in actions if a.id != "do_nothing"]
-        assert len(non_trivial) > 0
-        # Each non-trivial action should reference 'alpha' or 'conn-ab' in its ID
-        for a in non_trivial:
-            assert "alpha" in a.id or "conn-ab" in a.id
-
-
-class TestSimulate:
-    def test_2module_scenario_returns_valid_response(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        response = simulate(scenario, emergency, None, 100, 42)
-        assert response.sourceLabel.startswith("MockSimulatorAdapter")
-        assert len(response.results) > 0
-        assert response.runsRequested == 100
-
-    def test_10module_scenario_accepted(self):
-        scenario, emergency = make_large_scenario(10)
-        response = simulate(scenario, emergency, None, 50, 1)
-        assert len(response.results) > 0
-
-    def test_no_hazard_spread_probability_in_response(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        response = simulate(scenario, emergency, None, 50, 42)
-        import json as _json
-        response_json = response.model_dump_json()
-        assert "hazard_spread_probability" not in response_json
-        assert "PROPAGATION_FACTOR" not in response_json
-
-    def test_source_label_is_mock(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        response = simulate(scenario, emergency, None, 10, 42)
-        assert "Mock" in response.sourceLabel or "mock" in response.sourceLabel.lower()
-
-    def test_results_have_all_required_fields(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        response = simulate(scenario, emergency, None, 50, 42)
-        for result in response.results:
-            assert result.actionId
-            assert result.hazard is not None
-            assert result.crew is not None
-            assert result.equipment is not None
-            assert result.capabilities is not None
-            assert result.criticalFunctions is not None
-
-    def test_determinism_with_seed(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        r1 = simulate(scenario, emergency, None, 100, 99)
-        r2 = simulate(scenario, emergency, None, 100, 99)
-        assert r1.results[0].crew.allEvacuatedCount == r2.results[0].crew.allEvacuatedCount
-
-    def test_sample_counts_within_range(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        response = simulate(scenario, emergency, None, 200, 42)
-        for result in response.results:
-            assert 0 <= result.crew.allEvacuatedCount <= 200
-            assert 0 <= result.crew.anyTrappedCount <= 200
-            assert 0 <= result.hazard.containedInNScenarios <= 200
-
-    def test_existing_failed_equipment_state_is_preserved(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        scenario.modules["beta"].equipment = [
-            EquipmentIn(
-                id="eq-failed",
-                name="Failed Radio",
-                type="comms",
-                state="explicitly_failed",
-                providesCapabilities=["communications"],
-            )
-        ]
-
-        response = simulate(scenario, emergency, ["do_nothing"], 20, 42)
-
-        result = response.results[0]
-        assert result.equipment.byEquipmentId["eq-failed"].state == "explicitly_failed"
-        assert result.capabilities.byCapability["communications"] == "unavailable"
-
-    def test_closed_connection_is_not_a_partial_spread_path(self):
-        modules = {
-            module_id: ModuleIn(id=module_id, name=module_id, type="other")
-            for module_id in ("alpha", "beta", "gamma")
-        }
-        scenario = ScenarioIn(
-            name="Closed path scenario",
-            modules=modules,
-            connections={
-                "open-path": ConnectionIn(
-                    id="open-path",
-                    source="alpha",
-                    target="beta",
-                    type="hatch",
-                    state="open",
-                ),
-                "closed-path": ConnectionIn(
-                    id="closed-path",
-                    source="alpha",
-                    target="gamma",
-                    type="hatch",
-                    state="closed",
-                ),
-            },
-        )
-        emergency = EmergencyConfigIn(affectedModuleId="alpha")
-
-        response = simulate(scenario, emergency, ["close_conn_open-path"], 20, 0)
-
-        assert "gamma" not in response.results[0].hazard.modulesReachedIds
-
-    def test_trajectory_seed_uses_stable_action_hash_and_preserves_zero_seed(self):
-        scenario, emergency = make_minimal_scenario("alpha")
-        response = simulate(scenario, emergency, ["do_nothing"], 20, 0)
-        expected_hash = int.from_bytes(
-            hashlib.sha256(b"do_nothing").digest()[:4],
-            byteorder="big",
-        )
-
-        assert response.results[0].exampleTrajectory is not None
-        assert response.results[0].exampleTrajectory.seed == expected_hash % 1000
 
 
 # ─── API endpoint tests ──────────────────────────────────────────────────────
@@ -475,3 +325,110 @@ class TestSimulateEndpoint:
 
         assert response.status_code == 200
         assert len(response.json()["results"]) == 2
+
+
+# ─── Nothing-hardcoded invariants, on the real engine ───────────────────────
+#
+# These two moved here from the deleted mock-adapter suite. Every other test in
+# that suite has an equivalent in test_phase_a_adapter.py or in the endpoint
+# tests above, but nothing else exercises a synthetic topology: the adapter
+# tests all run on the five-module demo or a two-module fixture. `runs=1` keeps
+# the real engine's Monte Carlo from lengthening an already slow suite.
+
+def test_actions_reference_the_scenarios_own_ids():
+    """Action ids carry the scenario's real ids, never a fixed vocabulary."""
+    scenario, emergency = make_minimal_scenario("alpha")
+    actions = generate_actions(scenario, emergency)
+
+    non_trivial = [a for a in actions if a.id != "do_nothing"]
+    assert non_trivial, "a scenario with a fire should afford some action"
+    for action in non_trivial:
+        assert "alpha" in action.id or "conn-ab" in action.id
+        assert "m1" not in action.id.lower()
+        assert "m2" not in action.id.lower()
+
+
+def test_ten_module_scenario_runs_on_the_real_engine():
+    """The engine has no fixed module count — the demo happens to have five."""
+    scenario, emergency = make_large_scenario(10)
+    response = simulate(scenario, emergency, ["do_nothing"], 1, 42)
+
+    assert len(response.results) == 1
+    result = response.results[0]
+    assert result.actionId == "do_nothing"
+    # Every module the scenario declared is accounted for in the resource map.
+    assert set(result.resources.byModuleId) == set(scenario.modules)
+
+
+# ─── Capability tags, and saying so when there are none ─────────────────────
+#
+# Untagged equipment gives the engine nothing to judge: no systems, no RETURN,
+# and returnees that equal survivors because return was never assessed rather
+# than because it was assured. The builder creates equipment with an empty
+# list, so that was the default state for anything built in the UI.
+
+def test_equipment_type_implies_a_capability_when_none_is_given():
+    assert EquipmentIn(
+        id="e", name="e", type="propulsion", state="operational"
+    ).providesCapabilities == ["main_propulsion"]
+    # The builder sends an explicit empty list, which means the same thing.
+    assert EquipmentIn(
+        id="e", name="e", type="gnc", state="operational", providesCapabilities=[]
+    ).providesCapabilities == ["navigation"]
+
+
+def test_an_explicit_capability_is_never_overwritten():
+    equipment = EquipmentIn(
+        id="e", name="e", type="propulsion", state="operational",
+        providesCapabilities=["rcs"],
+    )
+    assert equipment.providesCapabilities == ["rcs"]
+
+
+def test_ambiguous_equipment_types_are_left_untagged():
+    """`science` and `other` carry no single obvious capability, so they are
+    not guessed at — a wrong tag is worse than an absent one."""
+    for equipment_type in ("science", "other", "fuel", "medical"):
+        assert EquipmentIn(
+            id="e", name="e", type=equipment_type, state="operational"
+        ).providesCapabilities == []
+
+
+def test_a_scenario_that_declares_no_return_capability_says_so():
+    scenario = ScenarioIn(
+        name="untagged",
+        modules={
+            "alpha": ModuleIn(
+                id="alpha", name="alpha", type="habitat",
+                equipment=[EquipmentIn(id="x", name="x", type="science",
+                                       state="operational")],
+            ),
+            "beta": ModuleIn(id="beta", name="beta", type="storage"),
+        },
+        connections={
+            "c": ConnectionIn(id="c", source="alpha", target="beta",
+                              type="hatch", state="open"),
+        },
+    )
+    emergency = EmergencyConfigIn(type="fire", affectedModuleId="alpha")
+
+    response = simulate(scenario, emergency, ["do_nothing"], 1, 1)
+
+    assert response.warnings, "an unjudged return capability must be reported"
+    assert "RETURN" in response.warnings[0]
+    result = response.results[0]
+    assert result.returnCapability.declared is False
+    # The two being equal here is an artefact of not asking, which is exactly
+    # what the warning exists to stop a reader concluding from.
+    assert result.expectedReturnees == result.expectedSurvivors
+
+
+def test_the_demo_declares_return_and_reports_no_warning():
+    fixture = json.loads((FIXTURES_DIR / "five_module_demo.json").read_text("utf-8"))
+    response = simulate(
+        ScenarioIn(**fixture), EmergencyConfigIn(**fixture["emergency"]),
+        ["do_nothing"], 1, 42,
+    )
+
+    assert response.warnings == []
+    assert response.results[0].returnCapability.declared is True

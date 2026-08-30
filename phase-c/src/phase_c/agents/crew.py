@@ -36,6 +36,10 @@ Answer these, using only the DATA:
     mission function, including passage-driven air/connectivity feedback.
   - Which functions have a single provider or none, and which crew member that
     depends on?
+  - When `expected_returnees` is below `expected_survivors`, `return_capability`
+    says why: people survived the emergency without a way home. Report that as
+    two different outcomes, never as one number. If its `declared` is false the
+    two are equal by construction and neither confirms the other.
   - What does `criticality` say? `measured_score` is the capability lost when
     that person is removed from the simulation; `assumed_weight` is a
     configurable FMECA-style table value. Explain priorities through their
@@ -49,6 +53,11 @@ Answer these, using only the DATA:
             "crew_counts": analysis.crew_counts,
             "expected_survivors": analysis.expected_survivors,
             "expected_returnees": analysis.expected_returnees,
+            "return_capability": (
+                analysis.return_capability.model_dump(mode="json")
+                if analysis.return_capability
+                else None
+            ),
             "resources": {
                 k: v.model_dump(mode="json") for k, v in analysis.resources.items()
             },

@@ -271,3 +271,73 @@ def test_an_invented_pointer_still_fails(focus):
     assert not registry.resolves("/totally/invented")
     # A near-miss on a real key is still a miss.
     assert not registry.resolves("/hazard/sm_ac_exceeded_modules")
+
+
+# ── Coordinator refs that omit the action index ─────────────────────────────
+#
+# The coordinator reads a case-shaped payload where every action hangs under
+# /actions/<i>, but it synthesizes findings whose refs point into each
+# specialist's single-action view. Copying one produces a bare "/systems/..."
+# that names a real value at the wrong depth. Treating that as fabrication
+# buries the genuine violations underneath it.
+
+def _case_registry_and_prefix(case, index: int = 0):
+    payload = {"actions": [a.model_dump(mode="json") for a in case.actions]}
+    return FactRegistry.from_payload(payload), f"/actions/{index}"
+
+
+def test_action_scoped_ref_is_an_imprecision_not_a_fabrication(case):
+    registry, prefix = _case_registry_and_prefix(case)
+    finding = AgentFinding(
+        agent="coordinator",
+        claims=[
+            Claim(
+                statement="All systems remained operational in this run.",
+                basis="SIMULATION_FACT",
+                refs=["/systems"],
+            )
+        ],
+    )
+    violations = validate_finding(finding, registry, action_prefix=prefix)
+
+    assert rules(violations) == {"R2_action_scoped_ref"}
+    assert [v.severity for v in violations] == ["MINOR"]
+
+
+def test_action_scoped_ref_still_fails_without_the_prefix(case):
+    """Without the context there is nothing to resolve against, so it blocks."""
+    registry, _ = _case_registry_and_prefix(case)
+    finding = AgentFinding(
+        agent="coordinator",
+        claims=[
+            Claim(
+                statement="All systems remained operational in this run.",
+                basis="SIMULATION_FACT",
+                refs=["/systems"],
+            )
+        ],
+    )
+    assert "R2_unreferenced_simulation_fact" in rules(
+        validate_finding(finding, registry)
+    )
+
+
+def test_a_wrong_field_path_stays_a_blocker(case):
+    """Leniency covers the missing prefix only. `sampled/means/...` names a
+    field that lives under `counts`, so no prefix rescues it — and it should
+    not, because that is exactly the mistake R2 exists to catch."""
+    registry, prefix = _case_registry_and_prefix(case)
+    finding = AgentFinding(
+        agent="coordinator",
+        claims=[
+            Claim(
+                statement="The action retained evacuation and return.",
+                basis="SIMULATION_FACT",
+                refs=["/sampled/means/retained_evacuation_and_return"],
+            )
+        ],
+    )
+    violations = validate_finding(finding, registry, action_prefix=prefix)
+
+    assert "R2_unreferenced_simulation_fact" in rules(violations)
+    assert any(v.severity == "BLOCKER" for v in violations)

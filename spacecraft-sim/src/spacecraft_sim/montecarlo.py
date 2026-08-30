@@ -113,9 +113,14 @@ def run_montecarlo(
 
         summary = result.summary
         trapped = summary["crew_counts"]["TRAPPED"]
-        return_ok = summary["capabilities"].get("RETURN", "AVAILABLE") != "UNAVAILABLE"
+        # Capability names come from the scenario, not from this module.
+        return_ok = (
+            summary["capabilities"].get(sc.return_capability_name, "AVAILABLE")
+            != "UNAVAILABLE"
+        )
         habitation_ok = (
-            summary["capabilities"].get("HABITATION", "AVAILABLE") != "UNAVAILABLE"
+            summary["capabilities"].get(sc.habitation_capability_name, "AVAILABLE")
+            != "UNAVAILABLE"
         )
         source_ids = {m.id for m in sc.fire_modules()}
         contained = set(summary["hazard_reached"]) <= source_ids

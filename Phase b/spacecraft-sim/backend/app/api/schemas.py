@@ -1,13 +1,12 @@
 """
 Pydantic schemas for Phase B API.
 
-These are the request/response models for POST /api/simulate and
-GET /api/templates endpoints. They mirror the TypeScript types in
-frontend/src/types/.
+These are the request/response models for the /api endpoints. They mirror the
+TypeScript types in frontend/src/types/.
 
-Phase A physics (propagation, Monte Carlo, PROPAGATION_FACTOR, etc.)
-are NOT represented here. The MockSimulatorAdapter in adapters/ provides
-placeholder results until Phase A ships.
+The physics itself is not represented here — these models describe the shape of
+the conversation, and PhaseASimulatorAdapter fills them from the engine's
+real-unit output.
 """
 
 from __future__ import annotations
@@ -17,6 +16,21 @@ from pydantic import BaseModel, Field, model_validator
 
 
 # ─── Canonical scenario input models ────────────────────────────────────────
+
+# The capability a piece of equipment provides when the scenario does not say.
+# Only unambiguous types are listed: fuel, power, medical, science and other
+# carry no single obvious capability, so they stay untagged rather than being
+# guessed at. `oxygen_supply` and `electrical_power` are deliberately absent —
+# those belong to a source module, not to a box inside one, and
+# `remove_source_capabilities` below strips them from equipment.
+CAPABILITY_BY_EQUIPMENT_TYPE: dict[str, str] = {
+    "life_support": "habitation",
+    "propulsion": "main_propulsion",
+    "gnc": "navigation",
+    "comms": "communications",
+    "fire_suppression": "fire_suppression",
+}
+
 
 class CrewMemberIn(BaseModel):
     id: str
@@ -63,6 +77,16 @@ class EquipmentIn(BaseModel):
                 updates["portable"] = data.get("type") in {
                     "gnc", "comms", "fire_suppression", "medical", "science", "other"
                 }
+            # Untagged equipment provides no capability, which leaves the engine
+            # with nothing to judge: no systems, no RETURN, and returnees that
+            # equal survivors because return was never assessed rather than
+            # because it was assured. The builder creates equipment with an
+            # empty list, so filling only a missing key would never help it —
+            # an empty list is treated as "not answered" too.
+            if not data.get("providesCapabilities"):
+                implied = CAPABILITY_BY_EQUIPMENT_TYPE.get(data.get("type"))
+                if implied:
+                    updates["providesCapabilities"] = [implied]
             data = {**data, **updates}
         return data
 
@@ -419,12 +443,32 @@ class ExampleTrajectory(BaseModel):
     steps: list[TrajectoryStep]
 
 
+class ReturnCapabilityOutcome(BaseModel):
+    """How the return verdict was reached for one action.
+
+    `availableAtEnd` is what decides `expectedReturnees`; the timing fields say
+    how close the run came to the other answer. `declared` is false when the
+    scenario never named a return capability, in which case return was not
+    judged at all and `expectedReturnees` equals `expectedSurvivors` by
+    construction.
+    """
+
+    name: str
+    declared: bool
+    finalState: Optional[str] = None
+    availableAtEnd: bool
+    downtimeSeconds: float = 0.0
+    firstLostAtSeconds: Optional[float] = None
+    restoredAtSeconds: Optional[float] = None
+
+
 class ActionSimulationResult(BaseModel):
     actionId: str
     hazard: HazardOutcome
     crew: CrewOutcomeSummary
     equipment: EquipmentOutcomeSummary
     capabilities: CapabilityOutcomeSummary
+    returnCapability: Optional[ReturnCapabilityOutcome] = None
     criticalFunctions: CriticalFunctionSummary
     resources: ResourceOutcomeSummary = Field(default_factory=ResourceOutcomeSummary)
     connectivity: ConnectivityOutcomeSummary = Field(
@@ -442,6 +486,10 @@ class SimulationResponse(BaseModel):
     simulatedHorizonSeconds: int
     runsRequested: int
     seed: Optional[int]
+    # Things the reader has to know to interpret the numbers — most importantly
+    # when a capability was never declared, so a comfortable-looking result is
+    # really an unasked question.
+    warnings: list[str] = Field(default_factory=list)
     sourceLabel: str
 
 

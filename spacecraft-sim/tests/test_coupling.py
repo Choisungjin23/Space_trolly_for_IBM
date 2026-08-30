@@ -10,6 +10,7 @@ from spacecraft_sim.capability import (
 )
 from spacecraft_sim.crew import measured_criticality
 from spacecraft_sim.engine import counterfactual, simulate
+from spacecraft_sim.models import Equipment, System
 from tests.conftest import add_crew, add_system, make_line_scenario
 
 HORIZON = 1800.0
@@ -218,3 +219,151 @@ def test_operator_loss_shows_up_in_the_summary(demo):
         "no_operator:life_support_ops"
     )
     assert result.summary["capabilities"]["HABITATION"] == "UNAVAILABLE"
+
+
+# ── Redundant providers (redundancy="any") ──────────────────────────────────
+#
+# A system declared "any" treats its equipment as interchangeable providers:
+# three life-support units all deliver habitation, so losing one does not lose
+# the capability. Each provider stands on its own equipment and the module that
+# equipment sits in, so isolating one module cannot take down a provider housed
+# somewhere else.
+
+def redundant_scenario(n_providers: int = 2, redundancy: str = "any"):
+    """One system fed by `n_providers` equipment items, each in its own module."""
+    scenario = make_line_scenario(n_modules=n_providers + 1)
+    system = add_system(scenario, "power", "A1", equipment_id="eq1")
+    system.redundancy = redundancy
+    for index in range(2, n_providers + 1):
+        equipment_id = f"eq{index}"
+        module_id = f"A{index}"
+        scenario.equipment.append(
+            Equipment(
+                id=equipment_id, name=equipment_id, module_id=module_id, system="power"
+            )
+        )
+        scenario.module(module_id).equipment_ids.append(equipment_id)
+        system.depends_on_equipment.append(equipment_id)
+    system.depends_on_modules = []
+    return scenario, system
+
+
+def test_any_survives_a_damaged_provider():
+    scenario, _ = redundant_scenario()
+    scenario.equipment[0].damaged = True
+    assert evaluate_systems(scenario)["power"] == "OPERATIONAL"
+
+
+def test_any_fails_only_when_every_provider_is_gone():
+    scenario, system = redundant_scenario()
+    for equipment in scenario.equipment:
+        equipment.damaged = True
+    assert evaluate_systems(scenario)["power"] == "FAILED_EXPLICITLY"
+    assert system.unavailable_reason == "equipment_damaged"
+
+
+def test_any_survives_an_isolated_provider_module():
+    scenario, _ = redundant_scenario()
+    scenario.module("A1").isolated = True
+    assert evaluate_systems(scenario)["power"] == "OPERATIONAL"
+
+
+def test_any_keeps_the_best_provider_state():
+    """A degraded provider does not drag down a healthy one."""
+    scenario, _ = redundant_scenario()
+    scenario.equipment[0].powered = False  # would be UNAVAILABLE on its own
+    assert evaluate_systems(scenario)["power"] == "OPERATIONAL"
+
+
+def test_any_reports_the_best_reachable_state_when_all_are_degraded():
+    scenario, system = redundant_scenario()
+    scenario.equipment[0].damaged = True          # FAILED_EXPLICITLY
+    scenario.equipment[1].powered = False         # UNAVAILABLE
+    assert evaluate_systems(scenario)["power"] == "UNAVAILABLE"
+    assert system.unavailable_reason == "equipment_powered_down"
+
+
+def test_any_works_for_a_system_that_rests_on_modules_alone():
+    """Air and power sources are the module itself, not a box inside it."""
+    scenario = make_line_scenario(n_modules=3)
+    scenario.systems.append(
+        System(
+            id="oxygen_supply",
+            name="oxygen_supply",
+            depends_on_modules=["A1", "A2"],
+            redundancy="any",
+        )
+    )
+    scenario.module("A1").isolated = True
+    assert evaluate_systems(scenario)["oxygen_supply"] == "OPERATIONAL"
+    scenario.module("A2").isolated = True
+    assert evaluate_systems(scenario)["oxygen_supply"] == "UNAVAILABLE"
+
+
+def test_all_is_the_default_and_keeps_the_strict_judgement():
+    scenario, system = redundant_scenario(redundancy="all")
+    assert system.redundancy == "all"
+    scenario.equipment[0].damaged = True
+    # Under "all" a single damaged part takes the whole system down.
+    assert evaluate_systems(scenario)["power"] == "FAILED_EXPLICITLY"
+
+
+def test_default_redundancy_is_all():
+    scenario = make_line_scenario(n_modules=2)
+    system = add_system(scenario, "power", "A1", equipment_id="eq1")
+    assert system.redundancy == "all"
+
+
+# ── Return capability instrumentation ───────────────────────────────────────
+#
+# Return is judged once, at the end of the horizon, so a loss that is repaired
+# before then costs nothing. That is defensible — the return flight happens
+# after the emergency — but it made a marginal run look identical to a
+# comfortable one. These lock in the measurement without changing the verdict.
+
+def scenario_with_return_capability(equipment_damaged: bool = False):
+    scenario = make_line_scenario(n_modules=2)
+    system = add_system(scenario, "propulsion", "A1", equipment_id="eq_prop")
+    system.redundancy = "any"
+    scenario.capabilities = {"RETURN": ["propulsion"]}
+    scenario.equipment[0].damaged = equipment_damaged
+    add_crew(scenario, "FIX", "engineer", "A1")
+    return scenario
+
+
+def test_return_capability_reports_a_clean_run():
+    result = simulate(scenario_with_return_capability(), horizon=600, dt=30)
+    block = result.summary["return_capability"]
+
+    assert block["name"] == "RETURN"
+    assert block["declared"] is True
+    assert block["available_at_end"] is True
+    assert block["downtime_seconds"] == 0.0
+    assert block["first_lost_at_seconds"] is None
+
+
+def test_return_capability_measures_a_loss_that_was_repaired():
+    """The verdict is unchanged; only the account of it is new."""
+    scenario = scenario_with_return_capability(equipment_damaged=True)
+    result = simulate(scenario, horizon=3600, dt=30)
+    block = result.summary["return_capability"]
+
+    # Repaired inside the horizon, so the run still ends able to return...
+    assert block["available_at_end"] is True
+    assert result.summary["expected_returnees"] == result.summary["expected_survivors"]
+    # ...but it was not able to for a good part of it, which is now visible.
+    assert block["downtime_seconds"] > 0
+    assert block["first_lost_at_seconds"] == 0.0
+    assert block["restored_at_seconds"] == block["downtime_seconds"]
+
+
+def test_undeclared_return_capability_is_reported_as_unjudged():
+    """An undeclared capability defaults to available, so returnees equal
+    survivors by construction. `declared` is what says the two being equal
+    carries no information."""
+    scenario = make_line_scenario(n_modules=2)
+    block = simulate(scenario, horizon=300, dt=30).summary["return_capability"]
+
+    assert block["declared"] is False
+    assert block["final_state"] is None
+    assert block["available_at_end"] is True

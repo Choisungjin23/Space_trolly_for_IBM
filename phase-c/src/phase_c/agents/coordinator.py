@@ -34,7 +34,16 @@ Requirements:
    write "/actions/0/sampled/counts/no_crew_trapped", never
    "/sampled/counts/no_crew_trapped". The `refs` you can see inside `findings`
    are each specialist's pointers into its own private view of one action -
-   they do not resolve here, so do not copy them.
+   they do not resolve here, so do not copy them. Rewrite them instead, by
+   putting the action's index in front:
+
+       a specialist wrote  "/systems/main_propulsion"
+       you must write      "/actions/2/systems/main_propulsion"
+                            ^^^^^^^^^^ the index of the action you are talking
+                                       about, counting from 0 in `actions`
+
+   Every ref you emit starts with "/actions/<index>/" unless it points at a
+   case-level field such as "/mission_phase", "/findings/..." or "/evidence/...".
 6. Maximize `expected_returnees` first, then `expected_survivors`, under the
    declared resource constraints. Monte Carlo counts are not probabilities;
    the engine's explicit crew survival/return probabilities are model outputs.

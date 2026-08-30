@@ -53,6 +53,7 @@ from phase_c.contracts.analysis import (
     Hazard,
     Provenance,
     ResourceOutcome,
+    ReturnCapability,
     SampledOutcome,
 )
 from phase_c.timeline.events import extract_events
@@ -82,6 +83,31 @@ def load_scenario(path):
     from spacecraft_sim.models import Scenario
 
     return Scenario.model_validate_json(Path(path).read_text(encoding="utf-8"))
+
+
+def _case_warnings(scenario) -> list[str]:
+    """Say when a number means "not asked" rather than "answered well".
+
+    An undeclared return capability is the important one: the engine defaults it
+    to available, so every action reports expected_returnees == expected_survivors
+    and the coordinator's first objective silently stops discriminating.
+    """
+    warnings: list[str] = []
+    name = scenario.return_capability_name
+    if name not in scenario.capabilities:
+        warnings.append(
+            f"This scenario declares no {name} capability, so the ability to "
+            f"come home was never judged. expected_returnees equals "
+            f"expected_survivors for every action by construction, not because "
+            f"return was assured — do not read the two being equal as evidence."
+        )
+    if not scenario.systems:
+        warnings.append(
+            "This scenario declares no systems, so every system-state and "
+            "capability field is empty. Say so rather than reporting that "
+            "nothing is degraded."
+        )
+    return warnings
 
 
 def _digest(scenario) -> str:
@@ -216,6 +242,11 @@ class PhaseASimulationAdapter:
             },
             expected_survivors=summary.get("expected_survivors", 0.0),
             expected_returnees=summary.get("expected_returnees", 0.0),
+            return_capability=(
+                ReturnCapability.model_validate(summary["return_capability"])
+                if summary.get("return_capability")
+                else None
+            ),
             systems=dict(summary.get("systems", {})),
             system_reasons=dict(summary.get("system_reasons", {})),
             equipment=equipment,
@@ -325,5 +356,6 @@ class PhaseASimulationAdapter:
             capability_names=sorted(scenario.capabilities),
             criticality=criticality,
             criticality_baseline_action=baseline_id,
+            warnings=_case_warnings(scenario),
             actions=analyses,
         )

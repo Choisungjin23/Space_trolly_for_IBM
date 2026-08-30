@@ -220,6 +220,16 @@ class System(BaseModel):
     depends_on_modules: list[str] = Field(default_factory=list)
     depends_on_equipment: list[str] = Field(default_factory=list)
 
+    # How the dependencies combine.
+    #   "all" — every dependency is required (a system needs all of its parts).
+    #   "any" — the dependencies are interchangeable providers, so the system
+    #           survives while one of them does. This is what redundant
+    #           hardware looks like: three life-support units provide the same
+    #           capability, and losing one does not lose the capability.
+    # "all" is the default so a scenario written before this field keeps its
+    # exact previous behaviour.
+    redundancy: Literal["all", "any"] = "all"
+
     # Crew coupling. None = the system needs nobody to run it.
     operator_function: str | None = None
     repair_function: str = config.DEFAULT_REPAIR_FUNCTION
@@ -237,6 +247,12 @@ class Scenario(BaseModel):
     equipment: list[Equipment] = Field(default_factory=list)
     systems: list[System] = Field(default_factory=list)
     capabilities: dict[str, list[str]] = Field(default_factory=dict)
+    # Which capability name means "the crew can still come home" and "the
+    # crew can still live aboard". Named by the scenario rather than fixed in
+    # the engine, so a scenario is free to call them something else. The
+    # defaults preserve the names the engine used when they were literals.
+    return_capability_name: str = "RETURN"
+    habitation_capability_name: str = "HABITATION"
     mission_phase: str = "cruise"
     escape_target_connection_id: str | None = None
     escape_from_module_id: str | None = None

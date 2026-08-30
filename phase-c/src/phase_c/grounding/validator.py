@@ -60,7 +60,19 @@ def validate_finding(
     *,
     evidence: list[EvidenceAnswer] | None = None,
     allow_best_action: bool = False,
+    action_prefix: str | None = None,
 ) -> list[GroundingViolation]:
+    """Check one agent's claims against the tree that agent was shown.
+
+    `action_prefix` is for the Coordinator alone. It reads a case-shaped payload
+    where each action hangs under `/actions/<i>`, but the specialists' findings
+    it synthesizes cite into their own single-action views, so it tends to copy
+    a bare `/systems/...` that cannot resolve here. Given the recommended
+    action's prefix, such a ref is retried under it: the claim is then about a
+    real value and is recorded as an imprecision rather than a fabrication.
+    Only the missing prefix is forgiven — a ref naming a field that does not
+    exist stays a BLOCKER, because that is the case the rule exists to catch.
+    """
     evidence = evidence or []
     violations: list[GroundingViolation] = []
 
@@ -82,7 +94,26 @@ def validate_finding(
         # R2 — a simulation fact must point somewhere that resolves.
         if claim.basis == "SIMULATION_FACT":
             resolving = [r for r in claim.refs if registry.resolves(r)]
-            if not resolving:
+            rescued = (
+                [
+                    r
+                    for r in claim.refs
+                    if not registry.resolves(r)
+                    and registry.resolves(f"{action_prefix}{r}")
+                ]
+                if action_prefix and not resolving
+                else []
+            )
+            if not resolving and rescued:
+                add(
+                    "R2_action_scoped_ref",
+                    f"Ref(s) {rescued!r} omit the action index and only resolve "
+                    f"under {action_prefix!r}. The value is real; the pointer is "
+                    "imprecise, so a reader cannot tell which action it means.",
+                    claim,
+                    "MINOR",
+                )
+            elif not resolving:
                 add(
                     "R2_unreferenced_simulation_fact",
                     "SIMULATION_FACT claim has no ref that resolves against the "
@@ -139,7 +170,9 @@ def validate_finding(
     return violations
 
 
-def validate_recommendation(recommendation, registry: FactRegistry) -> list[GroundingViolation]:
+def validate_recommendation(
+    recommendation, registry: FactRegistry, *, action_prefix: str | None = None
+) -> list[GroundingViolation]:
     """A recommendation with no trade-off and no uncertainty is rejected — that
     shape is how these systems get over-trusted."""
     violations: list[GroundingViolation] = []
@@ -178,6 +211,8 @@ def validate_recommendation(recommendation, registry: FactRegistry) -> list[Grou
         claims=recommendation.rationale,
     )
     violations.extend(
-        validate_finding(finding, registry, allow_best_action=True)
+        validate_finding(
+            finding, registry, allow_best_action=True, action_prefix=action_prefix
+        )
     )
     return violations

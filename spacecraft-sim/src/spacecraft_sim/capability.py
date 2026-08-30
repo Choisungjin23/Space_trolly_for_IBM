@@ -93,10 +93,48 @@ def update_repairs(scenario: Scenario, dt: float) -> None:
             equipment.repair_progress_seconds = 0.0
 
 
+# Best to worst. `redundancy="any"` keeps the best state any single provider
+# reaches; a tie on state keeps the first provider's reason.
+_STATE_ORDER = ("OPERATIONAL", "EXPOSED_AT_RISK", "UNAVAILABLE", "FAILED_EXPLICITLY")
+
+
+def _module_is_exposed(module) -> bool:
+    return (
+        module.fire_state in ("incipient", "sustained")
+        or module.extinction_per_m >= config.VERIFIED_DETECTOR_ALARM_EXTINCTION_PER_M
+    )
+
+
+def _provider_state(
+    equipment, modules: list, operators: list | None, operator_function: str | None
+) -> tuple[str, str | None]:
+    """Judge one provider — a piece of equipment and the modules it needs.
+
+    The precedence is the one `evaluate_systems` has always used, lifted out
+    unchanged so that both redundancy modes decide by identical rules.
+    `equipment` may be None for a system that rests on modules alone (a power
+    or air source is the module itself, not a box inside it).
+    """
+    if equipment is not None and equipment.damaged:
+        return "FAILED_EXPLICITLY", "equipment_damaged"
+    if any(m.isolated for m in modules):
+        return "UNAVAILABLE", "module_isolated"
+    if any(not m.power_sufficient for m in modules):
+        return "UNAVAILABLE", "insufficient_module_power"
+    if equipment is not None and not equipment.powered:
+        return "UNAVAILABLE", "equipment_powered_down"
+    if operators is not None and not operators:
+        return "UNAVAILABLE", f"no_operator:{operator_function}"
+    if any(_module_is_exposed(m) for m in modules):
+        return "EXPOSED_AT_RISK", "smoke_or_fire_in_module"
+    return "OPERATIONAL", None
+
+
 def evaluate_systems(scenario: Scenario) -> dict[str, str]:
     """Judge every system from its module, equipment and crew dependencies
     (in-place and returned as {system_id: state})."""
     equipment_by_id = {e.id: e for e in scenario.equipment}
+    modules_by_id = {m.id: m for m in scenario.modules}
     states: dict[str, str] = {}
 
     for system in scenario.systems:
@@ -113,24 +151,32 @@ def evaluate_systems(scenario: Scenario) -> dict[str, str]:
             else None
         )
 
-        if any(e.damaged for e in dep_equipment):
-            state, reason = "FAILED_EXPLICITLY", "equipment_damaged"
-        elif any(m.isolated for m in dep_modules):
-            state, reason = "UNAVAILABLE", "module_isolated"
-        elif any(not m.power_sufficient for m in dep_modules):
-            state, reason = "UNAVAILABLE", "insufficient_module_power"
-        elif any(not e.powered for e in dep_equipment):
-            state, reason = "UNAVAILABLE", "equipment_powered_down"
-        elif operators is not None and not operators:
-            state, reason = "UNAVAILABLE", f"no_operator:{system.operator_function}"
-        elif any(
-            m.fire_state in ("incipient", "sustained")
-            or m.extinction_per_m >= config.VERIFIED_DETECTOR_ALARM_EXTINCTION_PER_M
-            for m in dep_modules
-        ):
-            state, reason = "EXPOSED_AT_RISK", "smoke_or_fire_in_module"
+        if system.redundancy == "any":
+            # Interchangeable providers, so the system is as good as its BEST
+            # one. Each is judged against its own equipment and the module that
+            # equipment sits in, so isolating one module cannot take down a
+            # provider housed somewhere else.
+            providers = [
+                (e, [modules_by_id[e.module_id]] if e.module_id in modules_by_id else [])
+                for e in dep_equipment
+            ] or [(None, [m]) for m in dep_modules]
+            pick = min
         else:
-            state, reason = "OPERATIONAL", None
+            # Every dependency is required, so the system is as bad as its
+            # WORST part. One provider carries the whole module list, which
+            # reproduces the original single-pass judgement exactly.
+            providers = [(e, dep_modules) for e in dep_equipment] or [
+                (None, dep_modules)
+            ]
+            pick = max
+
+        state, reason = pick(
+            (
+                _provider_state(e, mods, operators, system.operator_function)
+                for e, mods in providers
+            ),
+            key=lambda judged: _STATE_ORDER.index(judged[0]),
+        )
 
         system.state = state
         system.unavailable_reason = reason

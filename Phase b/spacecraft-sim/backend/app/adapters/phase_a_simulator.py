@@ -1,11 +1,11 @@
 """PhaseASimulatorAdapter — the real Phase A engine behind the Phase B API.
 
-Replaces MockSimulatorAdapter with the `spacecraft_sim` package (real-unit,
-NASA-calibrated PoC engine): species mass-balance hazard transport, computed
-smoke detection, crew state machine with SMAC doses, equipment damage/repair,
-and Monte Carlo over uncertain scenario assumptions.
+Wraps the `spacecraft_sim` package (real-unit, NASA-calibrated PoC engine):
+species mass-balance hazard transport, computed smoke detection, crew state
+machine with SMAC doses, equipment damage/repair, and Monte Carlo over
+uncertain scenario assumptions.
 
-Same public interface as the mock: generate_actions() + simulate().
+Public interface: generate_actions() + simulate().
 
 Locating Phase A: `import spacecraft_sim` is tried first (pip install -e).
 If that fails, the path in the SPACECRAFT_SIM_SRC environment variable is
@@ -43,6 +43,7 @@ from spacecraft_sim.models import (
     Equipment as PAEquipment,
     Module as PAModule,
     Scenario as PAScenario,
+    System as PASystem,
 )
 from spacecraft_sim.montecarlo import run_montecarlo
 
@@ -64,6 +65,7 @@ from app.api.schemas import (
     EquipmentOutcomeSummary,
     ExampleTrajectory,
     HazardOutcome,
+    ReturnCapabilityOutcome,
     ScenarioIn,
     SimulationResponse,
     TrajectoryStep,
@@ -82,6 +84,81 @@ TRAJECTORY_MAX_STEPS = 8
 # Phase B transfer classes scale the connection-type default flow.
 _TRANSFER_FACTORS = {"none": 0.0, "low": 0.33, "medium": 0.66, "high": 1.0}
 
+# ── Systems and capabilities ────────────────────────────────────────────────
+#
+# Phase B's `providesCapabilities` tags are systems, not capabilities: they name
+# what a box does (`main_propulsion`), while a Phase A capability names what the
+# mission can still do (`RETURN`). So each tag becomes one Phase A System over
+# the equipment carrying it, and the mission capabilities below compose those
+# systems.
+#
+# Tags are redundant by nature — three life-support units all provide
+# `habitation` — so their systems are declared `redundancy="any"`, which is the
+# semantics the Phase B UI has always shown.
+
+# Capabilities that belong to a module rather than to a box inside it. Phase B
+# strips these from equipment (EquipmentIn.remove_source_capabilities), so they
+# are rebuilt here from the module's own source configuration.
+_SOURCE_SYSTEMS = {
+    "oxygen_supply": lambda m: m.type == "life_support" and m.supplies_air,
+    "electrical_power": lambda m: m.type == "power" and m.max_power_output_w > 0,
+}
+
+# ASSUMED: which systems a mission capability needs. Conjunctive — coming home
+# needs propulsion AND navigation AND power, not any one of them. Only systems
+# the scenario actually declares are included, and a capability with no
+# surviving members is not declared at all.
+ASSUMED_MISSION_CAPABILITIES: dict[str, set[str]] = {
+    "RETURN": {
+        "return_capability",
+        "main_propulsion",
+        "navigation",
+        "electrical_power",
+    },
+    "HABITATION": {
+        "habitation",
+        "co2_removal",
+        "oxygen_supply",
+        "electrical_power",
+    },
+}
+
+# ASSUMED: the crew function a system needs someone available to perform.
+#
+# The split is between systems that run themselves and systems that need a
+# person acting. Life support, power and thermal control are automated: an
+# oxygen generator does not stop because nobody is standing next to it, so
+# leaving them uncoupled keeps a habitable spacecraft habitable while the crew
+# are cut off. Manoeuvring, navigation, returning and fire response are things
+# a crew member does, so losing every provider of that function takes them
+# down even though the hardware is intact — which is the point of Phase A's
+# crew coupling.
+#
+# Applied only when the scenario actually has a crew member providing it — see
+# `_operator_for`. Without that guard a scenario whose crew happens not to
+# declare `gnc_ops` would lose attitude control at t=0, which is a modelling
+# artifact rather than an emergency.
+ASSUMED_SYSTEM_OPERATOR_FUNCTION: dict[str, str] = {
+    "main_propulsion": "propulsion_ops",
+    "propulsion_reserve": "propulsion_ops",
+    "rcs": "gnc_ops",
+    "rcs_reserve": "gnc_ops",
+    "attitude_control": "gnc_ops",
+    "navigation": "navigation",
+    "return_capability": "return_ops",
+    "docking": "docking",
+    "fire_suppression": "fire_response",
+    # Automated, and so deliberately absent: habitation, co2_removal,
+    # emergency_life_support, thermal_control, oxygen_supply,
+    # electrical_power, communications.
+}
+
+_PA_TO_PHASE_B_CAPABILITY_STATE = {
+    "AVAILABLE": "available",
+    "AT_RISK": "degraded",
+    "UNAVAILABLE": "unavailable",
+}
+
 _AIRFLOW_MAP = {
     "source_to_target": "source_to_target",
     "target_to_source": "target_to_source",
@@ -89,6 +166,71 @@ _AIRFLOW_MAP = {
     "none": "none",
     "unknown": "none",
 }
+
+
+def _operator_for(tag: str, declared_functions: set[str]) -> Optional[str]:
+    """The operator function for a system, but only when someone can perform it.
+
+    A system whose operator function nobody in the crew provides would be
+    UNAVAILABLE from the first step. That says more about how the scenario was
+    filled in than about the emergency, so the coupling is applied only where
+    the crew actually declares the function.
+    """
+    function = ASSUMED_SYSTEM_OPERATOR_FUNCTION.get(tag)
+    return function if function in declared_functions else None
+
+
+def _build_systems_and_capabilities(
+    scenario: ScenarioIn, modules: list[PAModule], crew: list[PACrew]
+) -> tuple[list[PASystem], dict[str, list[str]]]:
+    """Turn Phase B's equipment tags and source modules into Phase A systems,
+    then compose the mission capabilities that read from them."""
+    providers: dict[str, list[str]] = {}
+    for module_in in scenario.modules.values():
+        for equipment_in in module_in.equipment:
+            for tag in equipment_in.providesCapabilities:
+                providers.setdefault(tag, []).append(equipment_in.id)
+
+    source_modules: dict[str, list[str]] = {}
+    for module in modules:
+        for tag, applies in _SOURCE_SYSTEMS.items():
+            if applies(module):
+                source_modules.setdefault(tag, []).append(module.id)
+
+    declared_functions = {f for member in crew for f in functions_of(member)}
+
+    systems: list[PASystem] = []
+    for tag in sorted(providers):
+        systems.append(
+            PASystem(
+                id=tag,
+                name=tag,
+                depends_on_equipment=providers[tag],
+                redundancy="any",
+                operator_function=_operator_for(tag, declared_functions),
+            )
+        )
+    for tag in sorted(source_modules):
+        systems.append(
+            PASystem(
+                id=tag,
+                name=tag,
+                depends_on_modules=source_modules[tag],
+                redundancy="any",
+                operator_function=_operator_for(tag, declared_functions),
+            )
+        )
+
+    declared = {system.id for system in systems}
+    # Every system is also a capability in its own right, which is what the
+    # results table has always displayed.
+    capabilities: dict[str, list[str]] = {sid: [sid] for sid in sorted(declared)}
+    # Mission capabilities sit on top, composed conjunctively.
+    for capability, members in ASSUMED_MISSION_CAPABILITIES.items():
+        present = sorted(members & declared)
+        if present:
+            capabilities[capability] = present
+    return systems, capabilities
 
 
 # ── Scenario translation ────────────────────────────────────────────────────
@@ -219,13 +361,15 @@ def to_phase_a_scenario(
             )
         )
 
+    systems, capabilities = _build_systems_and_capabilities(scenario, modules, crew)
+
     pa_scenario = PAScenario(
         modules=modules,
         connections=connections,
         crew=crew,
         equipment=equipment,
-        systems=[],  # Phase B computes capabilities from equipment directly
-        capabilities={},
+        systems=systems,
+        capabilities=capabilities,
         mission_phase=scenario.missionPhase or "cruise",
         escape_target_connection_id=(
             emergency.escapeTarget.connectionId if emergency.escapeTarget else None
@@ -412,36 +556,52 @@ def _equipment_state(
     return "operational"
 
 
-def _capability_summary(
-    equipment_states: dict[str, str], scenario: ScenarioIn, final: PAScenario
-) -> dict:
-    """Phase B semantics: a capability is available while ANY provider is
-    operational (redundancy), degraded when the best provider is exposed."""
-    by_capability: dict[str, list[str]] = {}
-    for module_in in scenario.modules.values():
-        for eq_in in module_in.equipment:
-            for capability in eq_in.providesCapabilities:
-                by_capability.setdefault(capability, []).append(
-                    equipment_states[eq_in.id]
-                )
-    # Source capabilities belong to their modules, not to synthetic equipment
-    # tags. Their availability follows output selection and power sufficiency.
-    for module in final.modules:
-        if module.type == "life_support" and module.supplies_air:
-            state = "operational" if module.power_sufficient and not module.isolated else "unavailable"
-            by_capability.setdefault("oxygen_supply", []).append(state)
-        if module.type == "power" and module.max_power_output_w > 0:
-            state = "operational" if module.power_sufficient and not module.isolated else "unavailable"
-            by_capability.setdefault("electrical_power", []).append(state)
-    summary: dict[str, str] = {}
-    for capability, states in by_capability.items():
-        if any(s == "operational" for s in states):
-            summary[capability] = "available"
-        elif any(s == "exposed_at_risk" for s in states):
-            summary[capability] = "degraded"
-        else:
-            summary[capability] = "unavailable"
-    return summary
+def _return_capability(summary: dict) -> Optional[ReturnCapabilityOutcome]:
+    """Carry the engine's account of how the return verdict was reached."""
+    block = summary.get("return_capability")
+    if not block:
+        return None
+    return ReturnCapabilityOutcome(
+        name=block["name"],
+        declared=block["declared"],
+        finalState=block.get("final_state"),
+        availableAtEnd=block["available_at_end"],
+        downtimeSeconds=block["downtime_seconds"],
+        firstLostAtSeconds=block.get("first_lost_at_seconds"),
+        restoredAtSeconds=block.get("restored_at_seconds"),
+    )
+
+
+def _response_warnings(results: list[ActionSimulationResult]) -> list[str]:
+    """Say when a number means "not asked" rather than "answered well"."""
+    warnings: list[str] = []
+    undeclared = next(
+        (r.returnCapability for r in results if r.returnCapability and not r.returnCapability.declared),
+        None,
+    )
+    if undeclared is not None:
+        warnings.append(
+            f"No {undeclared.name} capability is declared by this scenario, so "
+            f"the ability to come home was never judged: expectedReturnees "
+            f"equals expectedSurvivors for every action by construction, not "
+            f"because return was assured. Tag the equipment that provides it "
+            f"(for example return_capability, main_propulsion or navigation)."
+        )
+    return warnings
+
+
+def _capability_summary(capabilities: dict[str, str]) -> dict:
+    """Render the engine's capability verdict in the product's vocabulary.
+
+    The engine is the single source of truth here: the redundancy that used to
+    be computed separately in this file now lives in the Phase A systems built
+    by `_build_systems_and_capabilities`, so the UI and the advisor read the
+    same judgement instead of two implementations that can disagree.
+    """
+    return {
+        capability: _PA_TO_PHASE_B_CAPABILITY_STATE.get(state, "unavailable")
+        for capability, state in capabilities.items()
+    }
 
 
 def _critical_functions(final: PAScenario) -> dict[str, CriticalFunctionEntry]:
@@ -636,8 +796,9 @@ def simulate(
                     }
                 ),
                 capabilities=CapabilityOutcomeSummary(
-                    byCapability=_capability_summary(equipment_states, scenario, final)
+                    byCapability=_capability_summary(summary["capabilities"])
                 ),
+                returnCapability=_return_capability(summary),
                 criticalFunctions=CriticalFunctionSummary(
                     byFunction=_critical_functions(final)
                 ),
@@ -695,4 +856,5 @@ def simulate(
         runsRequested=runs,
         seed=seed,
         sourceLabel=SOURCE_LABEL,
+        warnings=_response_warnings(results),
     )

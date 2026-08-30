@@ -5,9 +5,13 @@ Phase B backend contains:
   - API routing
   - PhaseASimulatorAdapter (adapters/phase_a_simulator.py) — bridges to the
     real spacecraft_sim engine (real-unit, NASA-calibrated PoC)
-  - MockSimulatorAdapter (adapters/mock_simulator.py) — fallback fixture kept
-    for environments where the Phase A package cannot be located
+  - PhaseCAdvisor (adapters/phase_c_advisor.py) — the multi-agent layer,
+    optional at import time and reported by GET /api/advisor/status
   - Template fixtures (fixtures/)
+
+There is no mock simulator. If the Phase A engine cannot be imported the
+backend refuses to start rather than answering with different physics under
+the same response shape.
 """
 
 from fastapi import FastAPI

@@ -36,6 +36,27 @@ class Detection(BaseModel):
     detected_at_seconds: float | None = None
 
 
+class ReturnCapability(BaseModel):
+    """How the engine reached its return verdict for one action.
+
+    `available_at_end` is what sets every crew member's return probability, and
+    so `expected_returnees`. The timing fields say how close the run came to the
+    other answer: a capability lost and repaired inside the horizon costs
+    nothing, which is defensible (the return flight happens afterwards) but
+    invisible without these. `declared` false means the scenario never named a
+    return capability, so return was not judged at all and `expected_returnees`
+    equals `expected_survivors` by construction rather than by evidence.
+    """
+
+    name: str
+    declared: bool
+    final_state: str | None = None
+    available_at_end: bool = True
+    downtime_seconds: float = 0.0
+    first_lost_at_seconds: float | None = None
+    restored_at_seconds: float | None = None
+
+
 class Hazard(BaseModel):
     """Phase C grouping. Phase A has no top-level `hazard` key — these three
     fields sit flat on `summary`."""
@@ -162,6 +183,7 @@ class ActionAnalysis(BaseModel):
     resources: dict[str, ResourceOutcome] = Field(default_factory=dict)
     expected_survivors: float = 0.0
     expected_returnees: float = 0.0
+    return_capability: ReturnCapability | None = None
     systems: dict[str, SystemState] = Field(default_factory=dict)
     system_reasons: dict[str, str] = Field(default_factory=dict)
     equipment: dict[str, EquipmentOutcome] = Field(default_factory=dict)
@@ -191,6 +213,10 @@ class CaseAnalysis(BaseModel):
     capability_names: list[str] = Field(default_factory=list)
     criticality: list[CrewCriticality] = Field(default_factory=list)
     criticality_baseline_action: str | None = None
+    # What the reader must know to interpret the numbers — most importantly
+    # when a capability was never declared, so a comfortable-looking result is
+    # an unasked question rather than a reassuring answer.
+    warnings: list[str] = Field(default_factory=list)
     actions: list[ActionAnalysis] = Field(default_factory=list)
 
     def action(self, action_id: str) -> ActionAnalysis:

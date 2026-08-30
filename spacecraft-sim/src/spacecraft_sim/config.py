@@ -468,10 +468,37 @@ ROLE_FUNCTIONS: dict[str, set[str]] = {
 }
 
 # ASSUMED: how a failed facility raises demand for a function.
+#
+# Keyed by system id, so the vocabulary has to match whatever the scenario
+# names its systems. The first three are Phase A's own coarse names, kept so
+# that scenarios written against them are unaffected. The rest are the
+# finer-grained capability tags a scenario builder emits (one system per tag),
+# without which `crew.critical_functions` can never report NO_PROVIDER: that
+# branch only fires for a function this table mentions, and a table whose keys
+# match no system mentions none.
 ASSUMED_FACILITY_FUNCTION_DEMAND: dict[str, dict[str, float]] = {
     "life_support": {"life_support_ops": 1.6, "medical": 1.3, "repair": 1.2},
     "power":        {"power_ops": 1.7, "repair": 1.3},
     "propulsion":   {"propulsion_ops": 1.5, "repair": 1.2},
+
+    # Per-tag systems. Function names here are the ones crew actually declare
+    # (`medical_care`, not the older `medical` above), or the demand would name
+    # a function no provider can ever supply.
+    "habitation":        {"life_support_ops": 1.6, "medical_care": 1.3, "repair": 1.2},
+    "co2_removal":       {"life_support_ops": 1.6, "repair": 1.2},
+    "oxygen_supply":     {"life_support_ops": 1.6, "repair": 1.2},
+    "emergency_life_support": {"life_support_ops": 1.6, "medical_care": 1.3},
+    "thermal_control":   {"life_support_ops": 1.4, "repair": 1.2},
+    "electrical_power":  {"power_ops": 1.7, "repair": 1.3},
+    "main_propulsion":   {"propulsion_ops": 1.5, "repair": 1.2},
+    "propulsion_reserve": {"propulsion_ops": 1.5, "repair": 1.2},
+    "rcs":               {"gnc_ops": 1.4, "repair": 1.2},
+    "rcs_reserve":       {"gnc_ops": 1.4, "repair": 1.2},
+    "attitude_control":  {"gnc_ops": 1.4, "repair": 1.2},
+    "navigation":        {"navigation": 1.5, "gnc_ops": 1.3},
+    "return_capability": {"return_ops": 1.6, "repair": 1.2},
+    "fire_suppression":  {"fire_response": 1.7, "repair": 1.2},
+    "communications":    {"command": 1.2, "repair": 1.2},
 }
 
 
