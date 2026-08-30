@@ -16,14 +16,17 @@ The operator makes the final call.
 
 | Folder | Phase | What it is | Tests |
 |---|---|---|---|
-| [`spacecraft-sim/`](spacecraft-sim/) | **A** | Real-unit stochastic emergency engine (Python library + CLI) | 117 |
-| [`Phase b/`](Phase%20b/) | **B** | Product layer — React Flow builder + FastAPI | 79 |
-| [`phase-c/`](phase-c/) | **C** | Multi-agent decision support over Phase A | 138 |
+| [`spacecraft-sim/`](spacecraft-sim/) | **A** | Real-unit stochastic emergency engine (Python library + CLI) | 132 |
+| [`Phase b/`](Phase%20b/) | **B** | Product layer — React Flow builder + FastAPI | 78 |
+| [`phase-c/`](phase-c/) | **C** | Multi-agent decision support over Phase A | 141 |
 
-**334 tests, all passing.** None require network or credentials.
+**351 tests, all passing.** None require network or credentials.
+
+New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 
 ### Documents
 
+- [`SETUP.md`](SETUP.md) — install, run, configure credentials, run the tests.
 - [`phase-a-contract.md`](phase-a-contract.md) — **the integration contract.** Real
   output shapes from the built engine. This is what B and C were written against.
 - [`phase-c-plan.md`](phase-c-plan.md) — Phase C design, reviewed before build.
@@ -35,8 +38,6 @@ The operator makes the final call.
   status and what is left, for developers.
 - [`spacecraft-sim/docs/nasa-calibration-report.html`](spacecraft-sim/docs/nasa-calibration-report.html)
   — how the engine's constants were mapped to NASA primary sources.
-- `phase-a-plan.md` — **stale.** Describes a retired probabilistic design. Kept for
-  history only; do not use it as a spec.
 
 ---
 
@@ -123,7 +124,9 @@ npm run dev
 ```
 
 Open http://localhost:5173. `GET http://localhost:8000/` should report
-`"adapter": "PhaseASimulatorAdapter"` — the real engine, not the mock.
+`"adapter": "PhaseASimulatorAdapter"`. There is only one simulator: if the
+Phase A engine cannot be imported the backend refuses to start and says what
+is missing, rather than falling back to something that answers differently.
 
 ### 3. The advisor (Phase C)
 
@@ -149,12 +152,13 @@ check and run:
 
 ```bash
 cd "Phase b/spacecraft-sim/backend"
-.venv-macos/bin/python -m phase_c.cli doctor --live
+.venv-macos/bin/python -m phase_c.cli doctor --access
 ```
 
-With that green, the **Advisor** tab in the results view becomes active.
-`doctor` prints the region and model it will use, and never prints your key or
-project ID.
+`--access` verifies the key, the project and the model availability **without
+spending any tokens**; use `--live` if you also want one real call. With that
+green, the **Advisor** tab in the results view becomes active. `doctor` prints
+the region and model it will use, and never prints your key or project ID.
 
 Moving to another region or another supported foundation model is an edit to
 those three lines plus a restart. Nothing in the source pins a model or a
@@ -184,12 +188,15 @@ IBM Cloud billing hard-stop.
 
 Honest list; details in each phase's README.
 
-- **The Phase C agents have never met a real model.** Every test runs on a
-  deterministic stub. Prompt iteration should be expected on the first live runs,
-  especially around JSON-schema adherence and JSON-pointer refs.
+- **Every test runs on a deterministic stub, not a real model.** The pipeline has
+  been exercised against live Granite, and the first runs behaved as this list
+  warned: the coordinator copied the specialists' JSON pointers verbatim, which
+  omits the action index. The validator now records that as a MINOR imprecision
+  instead of rejecting a factually correct claim, but the prompt itself did not
+  stop the model doing it. Expect more prompt iteration.
 - **Analysis is synchronous.** The planned job-id + polling design is not built, so
   a large scenario holds the HTTP request open (~2.4 s of simulation at 20 samples,
-  plus seven LLM calls).
+  plus seven LLM calls; roughly 100-170 s end to end in practice).
 - **Five of the seven agent specifications are proposals.** The source task spec was
   truncated; Systems, Mission, Evidence, Critic and Coordinator are marked
   `PROPOSED` in code and README.
@@ -198,9 +205,19 @@ Honest list; details in each phase's README.
   Koylu-Faeth correlation published by NIST, and nitrogen-free fuels emit no
   HCN by stoichiometry. What is still unverified is whether product *ratios*
   hold in microgravity — Saffire measured spread rates, not yields.
-- **A Phase A defect is worked around, not fixed:** `montecarlo.py` hardcodes
-  `RETURN`/`HABITATION`, so those counts would be vacuous for a scenario using other
-  capability names. Phase C's adapter marks them `applicable: false`.
-- `spacecraft-sim/legacy/` holds the retired first prototype. Safe to delete.
-#   S p a c e _ t r o l l y _ f o r _ I B M  
- 
+- **Return is judged once, at the end of the horizon.** A return capability lost
+  and repaired inside the hour therefore costs nothing, which is defensible —
+  the return flight happens after the emergency — but it means a marginal run
+  and a comfortable one can report the same `expectedReturnees`. The engine now
+  reports `returnCapability.downtimeSeconds` so the difference is visible, but
+  the verdict itself is still a final-state snapshot.
+- **Mission capabilities are composed from a fixed table.** `RETURN` and
+  `HABITATION` are built in the Phase B bridge from the equipment capability
+  tags a scenario declares. A scenario that tags nothing gets no return verdict
+  at all — the response says so in `warnings` rather than reporting a healthy
+  spacecraft.
+- **The frontend and the engine size power differently.** `autoSizeResourceSources`
+  assigns each module to its *nearest* source, while the engine allocates from
+  the *highest-level* one, so a source sized by the builder can still be
+  spread thinner than intended. The demo fixture is sized for the engine's
+  policy; user-built scenarios may not be.
