@@ -1,4 +1,4 @@
-"""The grounding validator is the core safety mechanism (plan §7).
+"""The grounding validator is the core safety mechanism.
 
 These are adversarial: each test hands the validator a finding that a
 sloppy or over-confident LLM would plausibly produce.

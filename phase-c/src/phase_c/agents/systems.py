@@ -1,4 +1,4 @@
-"""Systems Agent (plan §6.3 — PROPOSED; the task spec was truncated here).
+"""Systems Agent (PROPOSED; the source task spec was truncated here).
 
 The load-bearing job is preserving Phase A's recoverability semantics:
 UNAVAILABLE is reversible, FAILED_EXPLICITLY is not. `system_reasons` gives the

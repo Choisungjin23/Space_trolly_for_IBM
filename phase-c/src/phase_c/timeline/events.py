@@ -1,11 +1,11 @@
-"""Semantic event extraction from the Phase A timeline (plan §5).
+"""Semantic event extraction from the Phase A timeline.
 
 A raw timeline is 120 frames x 5 dicts per action — far too heavy for a prompt
 and less informative than the transitions inside it. This module turns it into
 ~10-30 typed events.
 
 Frames carry only: t, extinction, co_mg_m3, crew, crew_modules, systems.
-Capabilities are NOT in a frame (plan §0.3), so capability transitions are
+Capabilities are NOT in a frame, so capability transitions are
 *derived* here by rolling per-frame system states up through the scenario's
 capability map, and are flagged `source="derived"`.
 """

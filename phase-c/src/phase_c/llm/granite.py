@@ -317,12 +317,14 @@ class GraniteClient:
         for attempt in range(self.retries + 1):
             reservation = None
             settled = False
+            request_attempted = False
             try:
                 if self.budget_guard:
                     # Raises BudgetExceeded before any network traffic.
                     reservation = budget.reserve_budget(prompt, allowance)
 
                 try:
+                    request_attempted = True
                     response = model.chat(
                         messages=messages,
                         params={"max_tokens": allowance, "temperature": temperature},
@@ -348,10 +350,15 @@ class GraniteClient:
                         # for the same failure. Give the retry room to finish.
                         allowance = min(allowance * 2, MAX_OUTPUT_TOKENS)
             except Exception:
-                # A reservation that never reached IBM is released rather than
-                # booked, so local failures do not eat the budget.
+                # Once a request was attempted, an exception cannot prove IBM
+                # did not process or bill it. Book the full reservation to keep
+                # the local cap conservative. Only failures before the request
+                # release their reservation.
                 if reservation is not None and not settled:
-                    budget.release_reservation(reservation)
+                    if request_attempted:
+                        budget.settle_budget(reservation)
+                    else:
+                        budget.release_reservation(reservation)
                 raise
 
         if truncated:

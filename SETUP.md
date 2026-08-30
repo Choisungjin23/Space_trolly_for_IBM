@@ -4,7 +4,7 @@ From a fresh clone to a running app. Nothing here needs IBM credentials except
 [the advisor](#4-the-advisor-optional) — the simulator, the builder UI and all
 353 tests run offline.
 
-**Requirements:** Python 3.11+ and Node.js 18+.
+**Requirements:** Python 3.11+ and Node.js 20.19+ or 22.12+.
 
 ---
 
@@ -47,10 +47,10 @@ pieces separately.
 ### Backend
 
 ```bash
-cd "Phase b/spacecraft-sim/backend"
+cd "phase-b/spacecraft-sim/backend"
 
 python -m venv .venv                 # macOS/Linux: python3 -m venv .venv
-.venv/Scripts/activate               # macOS/Linux: source .venv/bin/activate
+.venv\Scripts\Activate.ps1            # macOS/Linux: source .venv/bin/activate
 
 pip install -r requirements.txt
 pip install -e ../../../spacecraft-sim          # Phase A engine
@@ -64,7 +64,7 @@ The backend serves on <http://localhost:8000>.
 ### Frontend
 
 ```bash
-cd "Phase b/spacecraft-sim/frontend"
+cd "phase-b/spacecraft-sim/frontend"
 npm install
 npm run dev
 ```
@@ -87,14 +87,14 @@ cd spacecraft-sim && python -m pytest
 cd phase-c && python -m pytest
 
 # Phase B — the product layer               (~15 min: real engine + Monte Carlo)
-cd "Phase b/spacecraft-sim/backend" && python -m pytest
+cd "phase-b/spacecraft-sim/backend" && python -m pytest
 ```
 
 Use the backend virtual environment for all three — it has the other two
 installed in editable mode:
 
 ```bash
-"Phase b/spacecraft-sim/backend/.venv/Scripts/python.exe" -m pytest
+"phase-b/spacecraft-sim/backend/.venv/Scripts/python.exe" -m pytest
 ```
 
 Phase B is slow because every test drives the real engine over a 1-hour horizon
@@ -110,11 +110,11 @@ Everything else works without it.
 
 ### Credentials
 
-All four values live in one private file, `Phase b/spacecraft-sim/backend/.env`,
+All four values live in one private file, `phase-b/spacecraft-sim/backend/.env`,
 which Git ignores. Copy the example and fill it in:
 
 ```bash
-cd "Phase b/spacecraft-sim/backend"
+cd "phase-b/spacecraft-sim/backend"
 cp .env.example .env
 ```
 
@@ -152,11 +152,16 @@ With that green, the Advisor tab becomes active.
 Every Granite call goes through a hard budget guard (`phase_c/llm/budget.py`): it
 reserves the worst-case cost *before* the request, refuses the call outright if
 the cap would break, and settles against the real token counts watsonx returns.
-It defaults to a USD 100 cap at the published Resource Unit rate (USD 0.0002 per
-1,000 tokens). Lower it in the same `.env`:
+The example uses IBM's separate input/output prices for
+`ibm/granite-4-h-small`, checked against the
+[IBM supported-model pricing table](https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-supported-models)
+on 2026-08-31. If you change models, update both prices from IBM's current
+table. Configure them in the same `.env`:
 
 ```env
 IBM_BUDGET_USD=5.00
+IBM_INPUT_PRICE_PER_1M=0.0636
+IBM_OUTPUT_PRICE_PER_1M=0.265
 IBM_BUDGET_DB=/absolute/path/to/ledger.sqlite3
 ```
 

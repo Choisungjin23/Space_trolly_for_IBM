@@ -1,8 +1,7 @@
 # Phase C — Multi-agent decision support
 
-A decision-support layer over the Phase A spacecraft simulator. Built to the
-plan in [`../phase-c-plan.md`](../phase-c-plan.md), against the interfaces in
-[`../phase-a-contract.md`](../phase-a-contract.md).
+A decision-support layer over the Phase A spacecraft simulator, implemented
+against the interfaces in [`../phase-a-contract.md`](../phase-a-contract.md).
 
 ```
 Scenario -> Phase A engine -> PhaseASimulationAdapter -> normalized analysis
@@ -28,7 +27,7 @@ the agents answer *what it means*; the operator decides.
 
 ```bash
 pip install -e .            # add ".[granite]" for the IBM watsonx client
-python -m pytest            # 75 tests, no network, no credentials
+python -m pytest            # 143 tests, no network, no credentials
 ```
 
 Phase A is located automatically: an installed `spacecraft_sim` first, then
@@ -51,11 +50,11 @@ the Phase A contract §8:
 
 ### One Phase A defect the adapter works around
 
-`montecarlo.py` hardcodes `RETURN` and `HABITATION` and defaults an undeclared
-capability to `AVAILABLE`, so for a scenario using different capability names
-those counts would read a vacuous *n/n*. The adapter marks such a count
-`applicable: false` instead. Phase A is unmodified; this is logged as a defect
-to fix on its own schedule (plan §0.2).
+`Distribution` exposes fixed return/habitation count fields and the engine
+defaults an undeclared configured capability to `AVAILABLE`, which could read
+as a vacuous *n/n*. The adapter keys those fields with the scenario-defined
+capability names and marks undeclared counts `applicable: false`. Phase A is
+unmodified; contract tests cover both custom and missing names.
 
 ## Grounding — the core safety mechanism
 
@@ -91,7 +90,7 @@ does not transfer to microgravity.
 
 `LLMClient` is a protocol. `GraniteClient` talks to watsonx.ai, configured
 only by environment - in normal local development from
-`Phase b/spacecraft-sim/backend/.env`:
+`phase-b/spacecraft-sim/backend/.env`:
 
 ```
 WATSONX_API_KEY      required
@@ -136,11 +135,11 @@ appears only in the Advisor panel.
   Phase A's summary reports *which* modules exceeded but not *when*. They are
   labelled `source: "derived"`.
 - Capability transitions are likewise derived, since timeline frames carry no
-  capabilities (plan §0.3).
+  capabilities.
 - `measured_criticality` is action-scoped in Phase A; the adapter runs it once
   for a labelled baseline action rather than per action.
-- Analysis is synchronous. The plan's job-id + poll design is not built yet; a
+- Analysis is synchronous. A job-id + polling design is not built yet; a
   large scenario with many actions will hold the request open.
 - Agent specifications for Systems, Mission, Evidence, Critic and Coordinator
   are **proposals** — the task spec was truncated before defining them
-  (plan §0.1).
+  completely.

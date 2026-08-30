@@ -1,5 +1,4 @@
-"""Semantic timeline extraction (plan §5), including the derived capability
-transitions that plan §0.3 identified as necessary."""
+"""Semantic timeline extraction, including derived capability transitions."""
 
 from phase_c.timeline.events import ALARM_EXTINCTION_PER_M, downsample, extract_events
 

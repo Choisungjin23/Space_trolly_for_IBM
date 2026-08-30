@@ -1,4 +1,4 @@
-"""Critic / Red-Team Agent (plan §6.6 — PROPOSED; the task spec was truncated).
+"""Critic / Red-Team Agent (PROPOSED; the source task spec was truncated).
 
 Reads every other finding PLUS the raw analysis, and hunts for the failure modes
 this architecture is most exposed to. Machine-detected grounding violations are

@@ -292,7 +292,10 @@ Corrected against the real schema (there is no top-level `hazard` or
 
 ---
 
-## 8. Known gaps an adapter must close
+## 8. Adapter responsibilities
+
+Phase C implements these responsibilities in
+`phase-c/src/phase_c/providers/phase_a.py`:
 
 1. **No JSON CLI mode.** `simulate` / `compare` / `montecarlo` print formatted
    text only. Either add a `--json` flag to Phase A, or have Phase C import the
@@ -307,12 +310,13 @@ Corrected against the real schema (there is no top-level `hazard` or
 6. **Capability keys are scenario-defined.** `RETURN` / `HABITATION` come from
    the demo file, not the engine. Never hardcode them; iterate the dict.
 
-Phase C should depend only on this document's shapes, behind:
+Phase C depends only on this document's shapes, behind:
 
 ```python
 class SimulationResultProvider:
-    def get_results(self, scenario) -> ...   # MockSimulationProvider today
-                                             # PhaseASimulationAdapter later
+    def get_results(self, scenario) -> ...
 ```
 
-and never import `spacecraft_sim.hazard`, `.crew`, or `.capability` internals.
+Production uses `PhaseASimulationAdapter`; offline tests replay captured output
+through `MockSimulationProvider`. Agent modules never import
+`spacecraft_sim.hazard`, `.crew`, or `.capability` internals.

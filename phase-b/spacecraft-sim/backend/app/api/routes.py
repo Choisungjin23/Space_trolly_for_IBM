@@ -37,7 +37,7 @@ from app.api.schemas import (
 # a stand-in that silently answers with different physics is worse than a
 # server that will not start, because the results look equally authoritative.
 try:
-    from app.adapters.phase_a_simulator import simulate
+    from app.adapters.phase_a_simulator import simulate, to_phase_a_action_id
 except ImportError as exc:  # pragma: no cover - depends on environment
     raise ImportError(
         "The Phase A engine (spacecraft_sim) could not be imported, so the "
@@ -125,6 +125,20 @@ def _advisor_configuration_problem() -> str | None:
     return " ".join(problems)
 
 
+def _validate_focus_action(request: AnalyzeRequest) -> None:
+    """Reject an unknown action before checking optional IBM configuration."""
+    if request.focusActionId is None:
+        return
+    try:
+        to_phase_a_action_id(
+            request.scenario,
+            request.emergency,
+            request.focusActionId,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.get("/advisor/status", response_model=AdvisorStatus)
 def advisor_status() -> AdvisorStatus:
     """Whether the Phase C multi-agent layer can run here.
@@ -165,6 +179,7 @@ def analyze_emergency(request: AnalyzeRequest) -> dict:
     Slower than /api/simulate by design: seven agents run on top of the
     simulation. The recommendation is advisory; the operator decides.
     """
+    _validate_focus_action(request)
     if not phase_c_advisor.PHASE_C_AVAILABLE:
         raise HTTPException(
             status_code=503,
@@ -306,6 +321,7 @@ def stream_simulation(request: SimulateRequest) -> StreamingResponse:
 @router.post("/analyze/stream")
 def stream_analysis(request: AnalyzeRequest) -> StreamingResponse:
     """POST /api/analyze with per-agent progress events."""
+    _validate_focus_action(request)
     if not phase_c_advisor.PHASE_C_AVAILABLE:
         raise HTTPException(
             status_code=503,

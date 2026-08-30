@@ -1,4 +1,4 @@
-"""Evidence / RAG Agent (plan §6.5 — PROPOSED; the task spec was truncated).
+"""Evidence / RAG Agent (PROPOSED; the source task spec was truncated).
 
 Independent of Phase A. Answers "what does relevant real technical evidence
 say?" and never decides. Applicability is mandatory on every answer.

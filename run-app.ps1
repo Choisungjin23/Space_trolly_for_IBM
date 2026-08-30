@@ -7,8 +7,8 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$backendDir = Join-Path $repoRoot "Phase b\spacecraft-sim\backend"
-$frontendDir = Join-Path $repoRoot "Phase b\spacecraft-sim\frontend"
+$backendDir = Join-Path $repoRoot "phase-b\spacecraft-sim\backend"
+$frontendDir = Join-Path $repoRoot "phase-b\spacecraft-sim\frontend"
 $phaseADir = Join-Path $repoRoot "spacecraft-sim"
 $phaseCDir = Join-Path $repoRoot "phase-c"
 $venvDir = Join-Path $backendDir ".venv"
@@ -57,10 +57,15 @@ function Stop-ProcessTree {
 }
 
 function Stop-OurServers {
-    # Only this project's servers, matched on their command line, so a
-    # developer's unrelated python or node process is never touched.
+    # Match both the uvicorn entry point and this repository's venv executable.
+    # `app.main:app` alone is common and could terminate an unrelated project.
+    $venvPattern = [Regex]::Escape($venvPython)
     Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -match 'uvicorn' -and $_.CommandLine -match 'app\.main:app' } |
+        Where-Object {
+            $_.CommandLine -match 'uvicorn' -and
+            $_.CommandLine -match 'app\.main:app' -and
+            ($_.ExecutablePath -eq $venvPython -or $_.CommandLine -match $venvPattern)
+        } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 
@@ -140,18 +145,18 @@ elseif (Select-String -LiteralPath $envFile -Quiet -Pattern "YOUR_IBM_API_KEY|YO
 }
 
 if (-not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
-    Write-Step "Creating the Python 3.12 virtual environment"
+    Write-Step "Creating the Python virtual environment"
     $uvCommand = Get-Command uv.exe -ErrorAction SilentlyContinue
     if ($null -ne $uvCommand) {
-        & $uvCommand.Source venv --python 3.12 --seed $venvDir
+        & $uvCommand.Source venv --python 3.11 --seed $venvDir
         Assert-CommandSucceeded "uv venv"
     }
     else {
         $created = $false
         $pyCommand = Get-Command py.exe -ErrorAction SilentlyContinue
         if ($null -ne $pyCommand) {
-            if (Test-NativeCommand -FilePath $pyCommand.Source -ArgumentList @("-3.12", "-c", "import sys; assert sys.version_info[:2] == (3, 12)")) {
-                & $pyCommand.Source -3.12 -m venv $venvDir
+            if (Test-NativeCommand -FilePath $pyCommand.Source -ArgumentList @("-3", "-c", "import sys; assert sys.version_info >= (3, 11)")) {
+                & $pyCommand.Source -3 -m venv $venvDir
                 Assert-CommandSucceeded "Python venv creation"
                 $created = $true
             }
@@ -159,10 +164,10 @@ if (-not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
         if (-not $created) {
             $pythonCommand = Get-Command python.exe -ErrorAction SilentlyContinue
             if ($null -eq $pythonCommand) {
-                throw "Python 3.12 was not found. Install Python 3.12 and try again."
+                throw "Python 3.11 or newer was not found. Install Python and try again."
             }
-            if (-not (Test-NativeCommand -FilePath $pythonCommand.Source -ArgumentList @("-c", "import sys; assert sys.version_info[:2] == (3, 12)"))) {
-                throw "The available python.exe is not Python 3.12. Install Python 3.12 or uv and try again."
+            if (-not (Test-NativeCommand -FilePath $pythonCommand.Source -ArgumentList @("-c", "import sys; assert sys.version_info >= (3, 11)"))) {
+                throw "The available python.exe is older than Python 3.11. Install a supported Python version or uv and try again."
             }
             & $pythonCommand.Source -m venv $venvDir
             Assert-CommandSucceeded "Python venv creation"
@@ -192,7 +197,17 @@ else {
 $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
 $npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue
 if ($null -eq $nodeCommand -or $null -eq $npmCommand) {
-    throw "Node.js and npm were not found on PATH. Install Node.js 24 and try again."
+    throw "Node.js and npm were not found on PATH. Install Node.js 20.19+ or 22.12+ and try again."
+}
+
+$nodeVersionText = (& $nodeCommand.Source --version).TrimStart("v")
+$nodeVersion = [Version]$nodeVersionText
+$nodeSupported = (
+    ($nodeVersion.Major -eq 20 -and $nodeVersion -ge [Version]"20.19.0") -or
+    ($nodeVersion -ge [Version]"22.12.0")
+)
+if (-not $nodeSupported) {
+    throw "Node.js 20.19+ or 22.12+ is required by Vite; found v$nodeVersionText."
 }
 
 $viteEntry = Join-Path $frontendDir "node_modules\vite\bin\vite.js"

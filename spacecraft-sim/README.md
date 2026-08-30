@@ -13,8 +13,8 @@ The engine runs in **real physical units**, calibrated against NASA primary
 sources where they exist. See [`docs/nasa-calibration-report.html`](docs/nasa-calibration-report.html)
 for the source survey and the unit-conversion design.
 
-Phase B (sandbox canvas UI) and Phase C (multi-agent Mission Control AI) come
-later. An earlier FastAPI + React prototype is kept in `legacy/` for reference.
+The Phase B canvas application and Phase C multi-agent advisor are implemented
+in the sibling `../phase-b` and `../phase-c` directories.
 
 ## Design principles
 
@@ -245,7 +245,7 @@ recommendation is reserved for Phase C agents and, ultimately, humans.
 python -m pytest
 ```
 
-99 tests cover: closed paths / ventilation-off / isolation / zero flow
+132 tests cover: closed paths / ventilation-off / isolation / zero flow
 transporting nothing; flow and module volume affecting concentration as
 physics requires; multi-hop propagation; per-profile mass-loss curves and
 extinction; computed detection including the unventilated penalty; crew dose

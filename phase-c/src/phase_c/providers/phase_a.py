@@ -8,7 +8,7 @@ Closes every gap listed in phase-a-contract.md §8:
 4. equipment absent from summary            -> pulled from final.equipment
 5. timeline is 120 heavy frames             -> replaced by semantic events
 6. capability keys are scenario-defined     -> iterated, never named in code
-7. MC hardcodes RETURN/HABITATION           -> gated on declared capabilities (plan §0.2)
+7. MC has fixed return/habitation fields    -> keyed by scenario capability names
 8. detected_at_seconds may be null          -> first-class NEVER_DETECTED
 9. no JSON CLI mode                         -> serialized in-process; Phase A unchanged
 
@@ -57,15 +57,6 @@ from phase_c.contracts.analysis import (
     SampledOutcome,
 )
 from phase_c.timeline.events import extract_events
-
-# Distribution fields that describe a specific capability by name. Phase A
-# hardcodes these two (montecarlo.py:112-114) and defaults an undeclared
-# capability to AVAILABLE, so the count is vacuous unless the scenario really
-# declares it. See plan §0.2.
-_CAPABILITY_COUNT_FIELDS = {
-    "RETURN": "return_available",
-    "HABITATION": "habitation_available",
-}
 
 # Counts that hold for any scenario, regardless of capability naming.
 _CAPABILITY_AGNOSTIC_COUNTS = (
@@ -286,10 +277,15 @@ class PhaseASimulationAdapter:
             if hasattr(distribution, field)
         }
 
-        # Gap 7 / plan §0.2: only surface a named-capability count when the
-        # scenario actually declares that capability.
+        # Phase A's Distribution has two fixed semantic fields, but Scenario
+        # lets callers name those capabilities. Preserve the scenario's names
+        # and mark a count inapplicable when that capability was not declared.
+        capability_count_fields = {
+            scenario.return_capability_name: "return_available",
+            scenario.habitation_capability_name: "habitation_available",
+        }
         capability_counts: dict[str, CapabilityCount] = {}
-        for capability_name, field in _CAPABILITY_COUNT_FIELDS.items():
+        for capability_name, field in capability_count_fields.items():
             if not hasattr(distribution, field):
                 continue
             declared = capability_name in capabilities

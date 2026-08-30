@@ -2,7 +2,6 @@
 it produces is real Phase A output — so these assertions test the normalization,
 not a hand-written mock."""
 
-import json
 from pathlib import Path
 
 import pytest
@@ -50,30 +49,53 @@ def test_gap6_capabilities_passed_through_without_hardcoding(case):
 
 
 def test_gap7_capability_counts_are_gated_on_declaration(case):
-    """Plan §0.2: Phase A's Distribution hardcodes RETURN/HABITATION and
-    defaults an undeclared capability to AVAILABLE. The adapter must mark such a
-    count not-applicable rather than reporting a vacuous n/n."""
+    """Fixed Distribution fields must not become vacuous n/n claims."""
     analysis = case.action("do_nothing")
     assert analysis.sampled is not None
     for name, count in analysis.sampled.capability_counts.items():
         assert count.applicable is (name in case.capability_names)
 
 
-def test_gap7_undeclared_capability_is_marked_not_applicable():
-    """Simulate a scenario that declares neither RETURN nor HABITATION."""
-    raw = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    raw["capability_names"] = ["EVA"]
-    for action in raw["actions"]:
-        action["capabilities"] = {"EVA": "AVAILABLE"}
-        if action.get("sampled"):
-            for name in action["sampled"]["capability_counts"]:
-                action["sampled"]["capability_counts"][name] = {
-                    "available": 0,
-                    "applicable": False,
-                }
-    case = CaseAnalysis.model_validate(raw)
-    counts = case.action("do_nothing").sampled.capability_counts
-    assert counts and all(not c.applicable for c in counts.values())
+def test_gap7_custom_capability_names_are_preserved(monkeypatch):
+    """The adapter must not turn scenario-defined names back into literals."""
+    from types import SimpleNamespace
+
+    from phase_c.providers import phase_a as adapter_module
+    from phase_c.providers.phase_a import PhaseASimulationAdapter
+
+    distribution = SimpleNamespace(
+        samples=2,
+        return_available=2,
+        habitation_available=2,
+        mean_total_exposure_seconds=0.0,
+        mean_peak_smac_dose=0.0,
+        mean_expected_survivors=2.0,
+        mean_expected_returnees=2.0,
+        notes=[],
+        hazard_contained_to_sources=2,
+        no_crew_trapped=2,
+        all_crew_safe_or_evacuated=2,
+        no_crew_reached_smac_dose=2,
+        retained_evacuation_and_return=2,
+    )
+    monkeypatch.setattr(adapter_module, "run_montecarlo", lambda *a, **k: distribution)
+
+    scenario = SimpleNamespace(
+        return_capability_name="EARTH_RETURN",
+        habitation_capability_name="SAFE_HAVEN",
+        model_copy=lambda deep: None,
+    )
+    sampled = PhaseASimulationAdapter()._sample(
+        scenario,
+        object(),
+        2,
+        42,
+        {"EARTH_RETURN": "AVAILABLE"},
+    )
+
+    assert set(sampled.capability_counts) == {"EARTH_RETURN", "SAFE_HAVEN"}
+    assert sampled.capability_counts["EARTH_RETURN"].applicable is True
+    assert sampled.capability_counts["SAFE_HAVEN"].applicable is False
 
 
 def test_gap8_detection_null_is_first_class(case):

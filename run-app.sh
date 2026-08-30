@@ -29,8 +29,8 @@ for argument in "$@"; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
-BACKEND_DIR="$SCRIPT_DIR/Phase b/spacecraft-sim/backend"
-FRONTEND_DIR="$SCRIPT_DIR/Phase b/spacecraft-sim/frontend"
+BACKEND_DIR="$SCRIPT_DIR/phase-b/spacecraft-sim/backend"
+FRONTEND_DIR="$SCRIPT_DIR/phase-b/spacecraft-sim/frontend"
 PHASE_A_DIR="$SCRIPT_DIR/spacecraft-sim"
 PHASE_C_DIR="$SCRIPT_DIR/phase-c"
 VENV_DIR="$BACKEND_DIR/.venv-macos"
@@ -162,12 +162,16 @@ else
     step "Python dependencies are already installed"
 fi
 
-command -v node >/dev/null 2>&1 || fail "Node.js was not found. Install Node.js 18 or newer (for example: brew install node)."
-command -v npm >/dev/null 2>&1 || fail "npm was not found. Install Node.js 18 or newer (for example: brew install node)."
+command -v node >/dev/null 2>&1 || fail "Node.js was not found. Install Node.js 20.19+ or 22.12+ (for example: brew install node)."
+command -v npm >/dev/null 2>&1 || fail "npm was not found. Install Node.js 20.19+ or 22.12+ (for example: brew install node)."
 
 NODE_BIN="$(command -v node)"
-NODE_MAJOR="$($NODE_BIN -p 'Number(process.versions.node.split(".")[0])')"
-(( NODE_MAJOR >= 18 )) || fail "Node.js 18 or newer is required; found $($NODE_BIN --version)."
+if ! "$NODE_BIN" -e '
+const [major, minor] = process.versions.node.split(".").map(Number);
+process.exit((major === 20 && minor >= 19) || major > 22 || (major === 22 && minor >= 12) ? 0 : 1);
+'; then
+    fail "Node.js 20.19+ or 22.12+ is required by Vite; found $($NODE_BIN --version)."
+fi
 
 PLATFORM_STAMP="$FRONTEND_DIR/node_modules/.installed-for-macos-$(uname -m)"
 if [[ ! -f "$PLATFORM_STAMP" ]]; then

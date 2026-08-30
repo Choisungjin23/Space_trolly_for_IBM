@@ -17,10 +17,10 @@ The operator makes the final call.
 | Folder | Phase | What it is | Tests |
 |---|---|---|---|
 | [`spacecraft-sim/`](spacecraft-sim/) | **A** | Real-unit stochastic emergency engine (Python library + CLI) | 132 |
-| [`Phase b/`](Phase%20b/) | **B** | Product layer — React Flow builder + FastAPI | 78 |
+| [`phase-b/`](phase-b/) | **B** | Product layer — React Flow builder + FastAPI | 78 |
 | [`phase-c/`](phase-c/) | **C** | Multi-agent decision support over Phase A | 141 |
 
-**351 tests, all passing.** None require network or credentials.
+**353 tests, all passing.** None require network or credentials.
 
 New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 
@@ -29,13 +29,10 @@ New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 - [`SETUP.md`](SETUP.md) — install, run, configure credentials, run the tests.
 - [`phase-a-contract.md`](phase-a-contract.md) — **the integration contract.** Real
   output shapes from the built engine. This is what B and C were written against.
-- [`phase-c-plan.md`](phase-c-plan.md) — Phase C design, reviewed before build.
 - [`docs/beginner-guide.html`](docs/beginner-guide.html) — what the whole system
   does, written for someone who has never coded. Includes a glossary.
 - [`docs/phase-a-explained.html`](docs/phase-a-explained.html) — the engine taken
   apart: NASA data, smoke transport, crew and equipment weighting.
-- [`docs/phase-status-report.html`](docs/phase-status-report.html) — per-phase
-  status and what is left, for developers.
 - [`spacecraft-sim/docs/nasa-calibration-report.html`](spacecraft-sim/docs/nasa-calibration-report.html)
   — how the engine's constants were mapped to NASA primary sources.
 
@@ -71,14 +68,15 @@ New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 5. **Provenance in the name.** Engine constants are `VERIFIED_*` (NASA primary
    source) or `ASSUMED_*` (PoC assumption). A test fails the build if a constant
    declares neither.
-6. **Nothing hardcoded.** Module ids, action ids and capability names come from the
-   scenario. The engine runs on 3 modules or 15.
+6. **No topology identifiers hardcoded.** Module ids, action ids and capability
+   names come from the scenario. The engine runs on 3 modules or 15; explicit
+   PoC equations and default mappings remain documented as assumptions.
 
 ---
 
 ## Running it
 
-Requires Python 3.11+ and Node 18+.
+Requires Python 3.11+ and a Vite-supported Node.js release (20.19+ or 22.12+).
 
 ### 1. The engine (Phase A)
 
@@ -93,7 +91,7 @@ python -m spacecraft_sim.cli compare examples/demo_spacecraft.json
 
 #### macOS quick start
 
-Install Python 3.11+ and Node.js 18+, then run this once from the repository
+Install Python 3.11+ and Node.js 20.19+ or 22.12+, then run this once from the repository
 root (Terminal asks for no credentials and keeps the Windows environment
 separate):
 
@@ -110,7 +108,7 @@ do not want it to open a browser.
 #### Manual start
 
 ```bash
-cd "Phase b/spacecraft-sim/backend"
+cd "phase-b/spacecraft-sim/backend"
 python3 -m venv .venv-macos
 source .venv-macos/bin/activate
 pip install -r requirements.txt -e ../../../spacecraft-sim -e "../../../phase-c[granite]"
@@ -118,7 +116,7 @@ uvicorn app.main:app --reload
 ```
 
 ```bash
-cd "Phase b/spacecraft-sim/frontend"
+cd "phase-b/spacecraft-sim/frontend"
 npm install
 npm run dev
 ```
@@ -131,7 +129,7 @@ is missing, rather than falling back to something that answers differently.
 ### 3. The advisor (Phase C)
 
 Needs IBM watsonx.ai credentials. All four values live in one private file,
-`Phase b/spacecraft-sim/backend/.env`, which Git ignores. Copy the example and
+`phase-b/spacecraft-sim/backend/.env`, which Git ignores. Copy the example and
 fill it in — **do not paste your API key into a shell command or a source
 file**, so the secret never lands in your shell history or in the repo:
 
@@ -151,7 +149,7 @@ No shell variables are needed: the backend loads this file at startup. Then
 check and run:
 
 ```bash
-cd "Phase b/spacecraft-sim/backend"
+cd "phase-b/spacecraft-sim/backend"
 .venv-macos/bin/python -m phase_c.cli doctor --access
 ```
 
@@ -170,12 +168,16 @@ serves — an unavailable one fails loudly rather than being silently swapped.
 Every Granite call goes through a hard budget guard (`phase_c/llm/budget.py`):
 it reserves the worst-case cost *before* the request, refuses the call outright
 if the cap would break, and settles against the real token counts returned by
-watsonx. Defaults to a USD 100 cap at the published watsonx Resource Unit rate
-(USD 0.0002 per 1,000 tokens, input and output alike). Set the cap alongside
-the credentials in the same `.env`:
+watsonx. The example configuration uses IBM's separate input and output rates
+for `ibm/granite-4-h-small`, checked against the
+[IBM supported-model pricing table](https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-supported-models)
+on 2026-08-31. A different model requires explicit current prices. Set the cap
+and rates alongside the credentials:
 
 ```env
 IBM_BUDGET_USD=5.00
+IBM_INPUT_PRICE_PER_1M=0.0636
+IBM_OUTPUT_PRICE_PER_1M=0.265
 IBM_BUDGET_DB=/Users/you/spacecraft-sim-ledger.sqlite3
 ```
 

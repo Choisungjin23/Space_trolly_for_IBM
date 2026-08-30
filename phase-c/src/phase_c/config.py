@@ -1,7 +1,7 @@
 """watsonx.ai configuration.
 
 Every IBM value comes from the environment, which in normal local development
-is populated from ``Phase b/spacecraft-sim/backend/.env``.
+is populated from ``phase-b/spacecraft-sim/backend/.env``.
 
 Nothing is captured at import time. ``WatsonxConfig.from_env()`` reads the
 environment when a client or a diagnostic actually asks for it, so a ``.env``
@@ -22,7 +22,7 @@ ENV_FILE_VAR = "WATSONX_ENV_FILE"
 # The repository ships one .env, next to the backend that owns startup.
 _REPO_BACKEND_ENV = (
     Path(__file__).resolve().parents[3]
-    / "Phase b"
+    / "phase-b"
     / "spacecraft-sim"
     / "backend"
     / ".env"

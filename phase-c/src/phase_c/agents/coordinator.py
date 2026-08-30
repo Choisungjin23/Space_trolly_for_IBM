@@ -1,4 +1,4 @@
-"""Decision Coordinator (plan §6.7 — PROPOSED; the task spec was truncated).
+"""Decision Coordinator (PROPOSED; the source task spec was truncated).
 
 The only agent permitted to recommend. It must name trade-offs and state
 uncertainty; a recommendation without both is rejected by the validator, because

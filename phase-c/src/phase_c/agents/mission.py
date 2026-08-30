@@ -1,4 +1,4 @@
-"""Mission Agent (plan §6.4 — PROPOSED; the task spec was truncated here).
+"""Mission Agent (PROPOSED; the source task spec was truncated here).
 
 Capability names come from the scenario, never from the engine. This agent
 iterates whatever `capabilities` holds and must say that those names are

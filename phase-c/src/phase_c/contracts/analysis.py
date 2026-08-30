@@ -145,8 +145,8 @@ class CapabilityCount(BaseModel):
     """Monte Carlo count for one capability.
 
     `applicable` is false when Phase A's Distribution reported this capability
-    without the scenario declaring it — see plan §0.2. Phase A defaults an
-    undeclared capability to AVAILABLE, so the count would be vacuously n/n.
+    without the scenario declaring it. Phase A defaults an undeclared
+    capability to AVAILABLE, so the count would otherwise be vacuously n/n.
     """
 
     available: int

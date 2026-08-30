@@ -6,12 +6,11 @@ AFTER, and refuse the call outright if it could push total spend over the cap.
 Reservation and settlement are serialized through SQLite so concurrent callers
 cannot race past the limit.
 
-Two changes from the original:
+Changes from the original:
 
-1. Prices default to the published watsonx Resource Unit rate ($0.0002 per
-   1,000 tokens, input and output alike) instead of 0. The original refused to
-   run until prices were set by hand; the check that rejects a zero or negative
-   price is kept, so an explicit 0 still fails loudly.
+1. The configured Granite model has separate published input and output rates.
+   Unknown models must provide both price variables instead of silently using
+   the wrong model's price.
 2. The database path is configurable via IBM_BUDGET_DB, so the ledger does not
    land inside an installed package directory.
 3. Every setting is read when it is used, not when this module is imported, so
@@ -29,9 +28,13 @@ from typing import Optional
 
 # ── Settings ──────────────────────────────────────────────────────
 
-# watsonx bills 0.0002 USD per Resource Unit, where 1 RU = 1,000 tokens
-# counting input and output alike. That is 0.20 USD per 1,000,000 tokens.
-DEFAULT_PRICE_PER_1M = "0.20"
+# Official watsonx.ai pay-as-you-go rates for the model shipped in
+# backend/.env.example, checked against IBM's supported-models table on
+# 2026-08-31. Prices are USD per 1,000,000 tokens. Environment overrides remain
+# available because IBM pricing and the selected model can change.
+PRICED_MODEL_ID = "ibm/granite-4-h-small"
+DEFAULT_INPUT_PRICE_PER_1M = "0.0636"
+DEFAULT_OUTPUT_PRICE_PER_1M = "0.265"
 DEFAULT_BUDGET_USD = "100.00"
 DEFAULT_SAFETY_FACTOR = "1.10"
 
@@ -41,12 +44,30 @@ def budget_usd() -> Decimal:
     return Decimal(os.getenv("IBM_BUDGET_USD", DEFAULT_BUDGET_USD))
 
 
+def _published_default(price: str) -> Decimal:
+    model_id = os.getenv("WATSONX_MODEL_ID", "").strip()
+    if model_id != PRICED_MODEL_ID:
+        shown = model_id or "<unset>"
+        raise RuntimeError(
+            f"IBM token prices are not configured for WATSONX_MODEL_ID={shown}. "
+            "Set IBM_INPUT_PRICE_PER_1M and IBM_OUTPUT_PRICE_PER_1M from the "
+            "current IBM watsonx.ai pricing table."
+        )
+    return Decimal(price)
+
+
 def input_price_per_1m() -> Decimal:
-    return Decimal(os.getenv("IBM_INPUT_PRICE_PER_1M", DEFAULT_PRICE_PER_1M))
+    configured = os.getenv("IBM_INPUT_PRICE_PER_1M")
+    if configured is not None:
+        return Decimal(configured)
+    return _published_default(DEFAULT_INPUT_PRICE_PER_1M)
 
 
 def output_price_per_1m() -> Decimal:
-    return Decimal(os.getenv("IBM_OUTPUT_PRICE_PER_1M", DEFAULT_PRICE_PER_1M))
+    configured = os.getenv("IBM_OUTPUT_PRICE_PER_1M")
+    if configured is not None:
+        return Decimal(configured)
+    return _published_default(DEFAULT_OUTPUT_PRICE_PER_1M)
 
 
 def safety_factor() -> Decimal:
@@ -72,8 +93,8 @@ def _validate_prices() -> None:
         raise RuntimeError(
             "IBM model token prices are not configured.\n\n"
             "Set them before running:\n"
-            '  $env:IBM_INPUT_PRICE_PER_1M="0.20"\n'
-            '  $env:IBM_OUTPUT_PRICE_PER_1M="0.20"\n\n'
+            '  $env:IBM_INPUT_PRICE_PER_1M="<current input rate per 1M>"\n'
+            '  $env:IBM_OUTPUT_PRICE_PER_1M="<current output rate per 1M>"\n\n'
             "Use the exact current pricing for the watsonx.ai model you call."
         )
 

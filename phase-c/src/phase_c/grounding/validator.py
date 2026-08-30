@@ -1,4 +1,4 @@
-"""Machine grounding checks (plan §7).
+"""Machine grounding checks.
 
 Prompt instructions alone do not stop fabrication. These do:
 

@@ -2,7 +2,7 @@
  * EmergencyInjector — inject fire or electronic-short damage into a module.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useScenarioStore } from '../../store/useScenarioStore'
 import type { EmergencyConfig } from '../../types/scenario'
 import { escapeRouteCandidates, recommendedEscapeRoute } from '../../domain/escapeRouting'
@@ -45,15 +45,15 @@ export default function EmergencyInjector({ isOpen, onClose }: Props) {
     existingTarget?.maxOccupants ?? Math.max(1, totalCrew),
   )
 
-  useEffect(() => {
-    setEscapeTargetKey(recommendedKey)
-  }, [selectedModuleId, recommendedKey])
-
-  useEffect(() => {
-    setMaxOccupants(existingTarget?.maxOccupants ?? Math.max(1, totalCrew))
-  }, [existingTarget?.maxOccupants, totalCrew])
-
   if (!isOpen) return null
+
+  function handleModuleChange(moduleId: string) {
+    setSelectedModuleId(moduleId)
+    const next = recommendedEscapeRoute(scenario, moduleId)
+    setEscapeTargetKey(next
+      ? `${next.connectionId}|${next.fromModuleId}|${next.toModuleId}`
+      : '')
+  }
 
   function handleInject() {
     if (!selectedModuleId || !scenario.modules[selectedModuleId]) return
@@ -156,7 +156,7 @@ export default function EmergencyInjector({ isOpen, onClose }: Props) {
               <select
                 style={inputStyle}
                 value={selectedModuleId}
-                onChange={(e) => setSelectedModuleId(e.target.value)}
+                onChange={(e) => handleModuleChange(e.target.value)}
               >
                 {moduleList.map((m) => (
                   <option key={m.id} value={m.id}>{m.name}</option>

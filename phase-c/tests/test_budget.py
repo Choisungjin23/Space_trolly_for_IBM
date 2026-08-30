@@ -1,5 +1,4 @@
-"""The budget guard must refuse before the network, settle on real usage, and
-never book spend for a call that failed locally."""
+"""The budget guard refuses before the network and settles conservatively."""
 
 import os
 from decimal import Decimal
@@ -81,9 +80,22 @@ def test_zero_price_is_still_rejected(ledger, monkeypatch):
         ledger.calculate_cost(10, 10)
 
 
-def test_default_price_matches_the_published_granite_rate():
-    # 0.0002 USD per 1,000 tokens = 0.20 USD per 1,000,000.
-    assert budget_module.DEFAULT_PRICE_PER_1M == "0.20"
+def test_default_prices_match_the_published_granite_rates(monkeypatch):
+    monkeypatch.setenv("WATSONX_MODEL_ID", budget_module.PRICED_MODEL_ID)
+    monkeypatch.delenv("IBM_INPUT_PRICE_PER_1M", raising=False)
+    monkeypatch.delenv("IBM_OUTPUT_PRICE_PER_1M", raising=False)
+
+    assert budget_module.input_price_per_1m() == Decimal("0.0636")
+    assert budget_module.output_price_per_1m() == Decimal("0.265")
+
+
+def test_unknown_model_requires_explicit_prices(monkeypatch):
+    monkeypatch.setenv("WATSONX_MODEL_ID", "ibm/another-model")
+    monkeypatch.delenv("IBM_INPUT_PRICE_PER_1M", raising=False)
+    monkeypatch.delenv("IBM_OUTPUT_PRICE_PER_1M", raising=False)
+
+    with pytest.raises(RuntimeError, match="not configured"):
+        budget_module.calculate_cost(10, 10)
 
 
 def test_the_cap_is_read_when_it_is_used_not_at_import(monkeypatch):
@@ -287,3 +299,24 @@ def test_a_malformed_but_complete_reply_does_not_grow_the_allowance(ledger, conf
     with pytest.raises(LLMError, match="never matched"):
         client.complete(system="AGENT: t", user="go", schema=_Reply)
     assert caps == [100, 100]
+
+
+def test_failed_api_attempt_books_the_full_reservation(ledger, configured):
+    """A transport error can arrive after IBM accepted a request. Treating it
+    as free could let repeated failures pass the local hard cap."""
+    from phase_c.llm.base import LLMError
+    from phase_c.llm.granite import GraniteClient
+
+    class Model:
+        def chat(self, *, messages, params):
+            raise RuntimeError("connection dropped after send")
+
+    client = GraniteClient(max_new_tokens=100, retries=0)
+    client._model = Model()
+
+    with pytest.raises(LLMError, match="connection dropped"):
+        client.complete(system="AGENT: t", user="go", schema=_Reply)
+
+    status = ledger.get_budget_status()
+    assert status["reserved_usd"] == pytest.approx(0.0, abs=1e-9)
+    assert status["spent_usd"] > 0

@@ -1,5 +1,31 @@
-# Python build and test artifacts
+# Secrets
+.env
+*.env
+!.env.example
+
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.venv/
+.venv-*/
+venv/
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Local run artifacts
+.run-logs/
+.cache/
+*.sqlite3
+
+# Editors and operating systems
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
