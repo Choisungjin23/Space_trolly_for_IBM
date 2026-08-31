@@ -1,8 +1,9 @@
 """Phase C pipeline.
 
     CaseAnalysis (from a SimulationProvider)
-        -> specialist agents      (hazard, crew, systems, mission)
         -> evidence / RAG
+        -> deterministic ethics policy
+        -> specialist agents      (hazard, crew, systems, mission)
         -> grounding validator    (machine, before the critic sees anything)
         -> critic / red-team
         -> coordinator
@@ -22,8 +23,13 @@ from phase_c.agents.mission import MissionAgent
 from phase_c.agents.systems import SystemsAgent
 from phase_c.contracts.analysis import ActionAnalysis, CaseAnalysis
 from phase_c.contracts.findings import DecisionPackage, GroundingViolation
+from phase_c.ethics.evaluator import EthicsEvaluator
 from phase_c.grounding.registry import FactRegistry
-from phase_c.grounding.validator import validate_finding, validate_recommendation
+from phase_c.grounding.validator import (
+    validate_ethical_assessment,
+    validate_finding,
+    validate_recommendation,
+)
 from phase_c.llm.base import LLMClient
 from phase_c.rag.store import EvidenceStore
 
@@ -40,10 +46,11 @@ class ProgressSink(Protocol):
         ...
 
 
-# The seven agents, in the order they run. Named here so the pipeline and the
-# progress readout cannot drift apart.
+# The seven LLM agents plus one deterministic policy stage, in execution order.
+# Named here so the pipeline and the progress readout cannot drift apart.
 STAGES: list[tuple[str, str]] = [
     ("evidence", "Retrieving NASA evidence"),
+    ("ethics", "Applying human-preservation policy"),
     ("hazard", "Hazard analyst"),
     ("crew_safety", "Crew safety analyst"),
     ("systems", "Systems analyst"),
@@ -69,6 +76,7 @@ class Orchestrator:
             MissionAgent(llm),
         ]
         self.evidence_agent = EvidenceAgent(llm, evidence_store)
+        self.ethics = EthicsEvaluator(self.evidence_agent.store)
         self.critic = CriticAgent(llm)
         self.coordinator = CoordinatorAgent(llm)
         self.focus_action_id = focus_action_id
@@ -106,9 +114,15 @@ class Orchestrator:
         evidence = self.evidence_agent.gather(focus, case)
         done += 1
 
+        announce(*STAGES[1])
+        ethical_assessment = self.ethics.evaluate(case)
+        violations: list[GroundingViolation] = validate_ethical_assessment(
+            ethical_assessment, {action.action.id for action in case.actions}
+        )
+        done += 1
+
         findings = []
-        violations: list[GroundingViolation] = []
-        for agent, (stage, label) in zip(self.specialists, STAGES[1:5]):
+        for agent, (stage, label) in zip(self.specialists, STAGES[2:6]):
             announce(stage, label)
             finding = agent.analyze(focus, case)
             findings.append(finding)
@@ -126,15 +140,19 @@ class Orchestrator:
             )
             done += 1
 
-        announce(*STAGES[5])
+        announce(*STAGES[6])
         critic_review = self.critic.review(
-            findings, focus, case, violations=violations
+            findings,
+            focus,
+            case,
+            violations=violations,
+            ethical_assessment=ethical_assessment,
         )
         done += 1
 
-        announce(*STAGES[6])
+        announce(*STAGES[7])
         recommendation = self.coordinator.recommend(
-            case, findings, critic_review, evidence
+            case, findings, critic_review, evidence, ethical_assessment
         )
         done += 1
         # Where the recommended action sits in the payload, so a ref that omits
@@ -150,13 +168,16 @@ class Orchestrator:
         recommendation_violations = validate_recommendation(
             recommendation,
             FactRegistry.from_payload(
-                self.coordinator.payload(case, findings, critic_review, evidence)
+                self.coordinator.payload(
+                    case, findings, critic_review, evidence, ethical_assessment
+                )
             ),
             action_prefix=(
                 f"/actions/{recommended_index}"
                 if recommended_index is not None
                 else None
             ),
+            ethical_assessment=ethical_assessment,
         )
         critic_review.grounding_violations.extend(recommendation_violations)
 
@@ -166,6 +187,7 @@ class Orchestrator:
             evidence=evidence,
             critic=critic_review,
             recommendation=recommendation,
+            ethical_assessment=ethical_assessment,
             provenance={
                 "focus_action_id": focus.action.id,
                 "engine": focus.provenance.engine,
@@ -174,6 +196,8 @@ class Orchestrator:
                 "seed": focus.provenance.seed,
                 "ethics_notice": focus.provenance.ethics_notice,
                 "criticality_baseline_action": case.criticality_baseline_action,
+                "ethics_policy_id": ethical_assessment.policy_id,
+                "ethics_policy_version": ethical_assessment.policy_version,
                 "sampling_note": (
                     "Monte Carlo values are counts over sampled assumption sets, "
                     "not validated real-world probabilities."

@@ -46,12 +46,20 @@ class EvidenceStore:
                 chunks.append(chunk)
         return cls(chunks)
 
-    def search(self, query: str, *, limit: int = 3) -> list[EvidenceChunk]:
+    def search(
+        self,
+        query: str,
+        *,
+        limit: int = 3,
+        document_types: set[str] | None = None,
+    ) -> list[EvidenceChunk]:
         wanted = _tokens(query)
         if not wanted:
             return []
         scored = []
         for chunk in self.chunks:
+            if document_types is not None and chunk.document_type not in document_types:
+                continue
             overlap = len(wanted & self._index[chunk.id])
             if overlap:
                 # Favour keyword hits, which are curated, over incidental prose.
@@ -65,3 +73,9 @@ class EvidenceStore:
             if chunk.id == chunk_id:
                 return chunk
         raise KeyError(chunk_id)
+
+    def get_by_source_id(self, source_id: str) -> EvidenceChunk:
+        for chunk in self.chunks:
+            if chunk.citation.source_id == source_id:
+                return chunk
+        raise KeyError(source_id)

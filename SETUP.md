@@ -2,7 +2,7 @@
 
 From a fresh clone to a running app. Nothing here needs IBM credentials except
 [the advisor](#4-the-advisor-optional) — the simulator, the builder UI and all
-353 tests run offline.
+362 tests run offline.
 
 **Requirements:** Python 3.11+ and Node.js 20.19+ or 22.12+.
 
@@ -105,8 +105,10 @@ a bridge that silently stopped matching the engine.
 
 ## 4. The advisor (optional)
 
-The **Advisor** tab runs seven agents over the simulation on IBM watsonx.ai.
-Everything else works without it.
+The **Advisor** tab first applies a deterministic, versioned human-preservation
+policy, then runs seven agents over the simulation on IBM watsonx.ai. The LLM
+explains and challenges the policy result; it cannot replace the selected action.
+Everything else works without the Advisor.
 
 ### Credentials
 

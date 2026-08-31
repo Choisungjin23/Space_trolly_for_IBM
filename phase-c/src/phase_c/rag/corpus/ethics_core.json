@@ -1,0 +1,59 @@
+[
+  {
+    "id": "project-human-preservation-policy-v1",
+    "text": "The project policy orders modeled human outcomes before mission assets, rejects identity and rank as intrinsic life-value weights, exposes unresolved ties, and keeps the human operator in command.",
+    "keywords": ["human preservation", "survivors", "returnees", "equal worth", "human decision", "tie break"],
+    "document_type": "ETHICAL_POLICY",
+    "authority_level": "PROJECT_POLICY",
+    "binding": true,
+    "version": "1.0.0",
+    "effective_date": "2026-08-31",
+    "scope": "IBM challenge proof of concept only",
+    "rule_ids": ["HP-001", "HP-002", "HO-001", "UN-001"],
+    "citation": {
+      "source_id": "PROJECT-HUMAN-PRESERVATION-POLICY-V1",
+      "title": "Human-preservation advisory policy",
+      "locator": "phase-c/src/phase_c/ethics/policy.json, rules and criteria",
+      "retrieved_on": "2026-08-31",
+      "url": "https://github.com/Choisungjin23/Space_trolly_for_IBM/blob/main/phase-c/src/phase_c/ethics/policy.json"
+    }
+  },
+  {
+    "id": "nasa-std-3001-crew-safety-policy",
+    "text": "NASA-STD-3001 Volume 1 establishes agency technical requirements intended to protect crew health, performance, and safety throughout human spaceflight. It does not prescribe a sacrificial-dilemma ranking or this project's tie-break sequence.",
+    "keywords": ["crew health", "crew safety", "human spaceflight", "medical", "protect crew"],
+    "document_type": "ETHICAL_POLICY",
+    "authority_level": "AGENCY_STANDARD",
+    "binding": false,
+    "version": "Revision C",
+    "effective_date": "2023-11-01",
+    "scope": "NASA human-spaceflight crew health requirements; general support only",
+    "rule_ids": ["HP-001"],
+    "citation": {
+      "source_id": "NASA-STD-3001-V1",
+      "title": "NASA Spaceflight Human-System Standard Volume 1: Crew Health",
+      "locator": "Section 1.0 Scope and Section 1.4 Authority",
+      "retrieved_on": "2026-08-31",
+      "url": "https://www.nasa.gov/reference/nasa-std-3001v1/"
+    }
+  },
+  {
+    "id": "nist-ai-rmf-human-oversight",
+    "text": "NIST AI RMF treats validity, safety, accountability, transparency, explainability, and managed harmful bias as contextual trustworthiness requirements and assigns metric and threshold choices to human judgment.",
+    "keywords": ["human oversight", "human judgment", "accountability", "transparency", "bias", "trustworthy ai"],
+    "document_type": "ETHICAL_POLICY",
+    "authority_level": "AGENCY_STANDARD",
+    "binding": false,
+    "version": "1.0",
+    "effective_date": "2023-01-26",
+    "scope": "AI governance and human oversight; not a spacecraft action-ranking rule",
+    "rule_ids": ["HO-001", "UN-001"],
+    "citation": {
+      "source_id": "NIST-AI-100-1",
+      "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0)",
+      "locator": "Section 3, AI Risks and Trustworthiness",
+      "retrieved_on": "2026-08-31",
+      "url": "https://doi.org/10.6028/NIST.AI.100-1"
+    }
+  }
+]

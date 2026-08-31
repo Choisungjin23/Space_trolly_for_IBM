@@ -78,7 +78,9 @@ class EvidenceAgent:
         seen: set[str] = set()
 
         for query in self.queries_for(analysis, case):
-            for chunk in self.store.search(query, limit=2):
+            for chunk in self.store.search(
+                query, limit=2, document_types={"TECHNICAL"}
+            ):
                 if chunk.id in seen:
                     continue
                 seen.add(chunk.id)

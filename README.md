@@ -4,7 +4,7 @@
 
 ```
 Build a spacecraft graph  →  inject a fire  →  simulate every candidate action
-  →  compare outcomes  →  multi-agent analysis  →  recommendation  →  human decides
+  →  human-preservation policy  →  multi-agent explanation  →  human decides
 ```
 
 The simulator produces the numbers. The AI interprets them and never invents any.
@@ -18,9 +18,9 @@ The operator makes the final call.
 |---|---|---|---|
 | [`phase-a/`](phase-a/) | **A** | Real-unit stochastic emergency engine (Python library + CLI) | 132 |
 | [`phase-b/`](phase-b/) | **B** | Product layer — React Flow builder + FastAPI | 78 |
-| [`phase-c/`](phase-c/) | **C** | Multi-agent decision support over Phase A | 143 |
+| [`phase-c/`](phase-c/) | **C** | Policy-grounded multi-agent decision support over Phase A | 152 |
 
-**353 tests, all passing.** None require network or credentials.
+**362 tests, all passing.** None require network or credentials.
 
 New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 
@@ -42,7 +42,8 @@ New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 | What does real technical evidence say? | Phase C evidence agent, over a cited NASA corpus |
 | What does this mean in my domain? | Phase C: Hazard, Crew Safety, Systems, Mission |
 | What did everyone get wrong? | Phase C critic / red-team |
-| Which response should be recommended? | Phase C coordinator — advisory only |
+| Which response should be recommended? | Phase C deterministic human-preservation policy |
+| How should that recommendation be explained and challenged? | Phase C coordinator + critic |
 | Which response do we take? | **The human operator** |
 
 ---
@@ -55,9 +56,10 @@ New here? [`SETUP.md`](SETUP.md) takes you from a fresh clone to a running app.
 2. **Separate samples from modeled probability.** Monte Carlo still reports *k of n
    sampled assumption sets*. Survival and return probabilities come from a separate,
    explicitly `ASSUMED_*` mortality model and are not clinical forecasts.
-3. **Maximize surviving returnees.** Under limited power, air, water and time, the
-   coordinator compares actions by expected surviving returnees and may surface an
-   isolation or abandonment option when it improves the total.
+3. **Machine-enforced human-preservation order.** Phase C compares expected
+   surviving returnees, then survivors, then the modeled outcome of the worst-off
+   crew member before exposure and containment tie-breakers. The LLM explains the
+   selected action but cannot replace it.
 4. **Operational priority, not social worth.** Crew and equipment priority is their
    counterfactual contribution to surviving returnees. Identity and rank are not
    intrinsic life-value weights.
@@ -198,6 +200,9 @@ Honest list; details in each phase's README.
 - **Five of the seven agent specifications are proposals.** The source task spec was
   truncated; Systems, Mission, Evidence, Critic and Coordinator are marked
   `PROPOSED` in code and README.
+- **The ethical assessment is an explicit PoC policy, not moral truth.** NASA and
+  NIST sources support crew-safety and human-oversight framing, but the exact
+  tie-break order is project-authored, versioned, and shown to the operator.
 - **Combustion yields now come from ground fire science**, on the argument that
   ISS cabin air is essentially sea-level air: CO is derived from the
   Koylu-Faeth correlation published by NIST, and nitrogen-free fuels emit no

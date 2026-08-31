@@ -217,6 +217,10 @@ def test_advisor_runs_end_to_end_on_the_demo(demo, scripted_llm):
         "mission",
     ]
     assert package["recommendation"]["human_decision_required"] is True
+    ethics = package["ethical_assessment"]
+    assert ethics["policy_id"] == "ASSUMED_HUMAN_PRESERVATION_POLICY_V1"
+    assert ethics["sources"]
+    assert package["recommendation"]["recommended_action_id"] == ethics["selected_action_id"]
     assert "counts over sampled assumption sets" in package["provenance"]["sampling_note"]
 
 
@@ -247,7 +251,7 @@ def test_advisor_output_carries_modeled_survival_probability(demo, scripted_llm)
         scenario, emergency, samples=2, seed=42, llm=scripted_llm
     )
     assert package["provenance"]["decision_objective"] == (
-        "maximize_expected_surviving_returnees_under_resource_constraints"
+        "lexicographic_human_preservation_policy_v1"
     )
 
 

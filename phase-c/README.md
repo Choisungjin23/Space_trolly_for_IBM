@@ -5,8 +5,9 @@ against the interfaces in [`../phase-a-contract.md`](../phase-a-contract.md).
 
 ```
 Scenario -> Phase A engine -> PhaseASimulationAdapter -> normalized analysis
-  -> specialist agents -> NASA evidence -> grounding validator
-  -> red-team critic -> coordinator -> structured recommendation -> human
+  -> technical + policy RAG -> deterministic human-preservation policy
+  -> specialist agents -> grounding validator -> red-team critic
+  -> coordinator explanation -> structured recommendation -> human
 ```
 
 **The AI does not replace the simulator.** Phase A answers *what happened*;
@@ -20,14 +21,15 @@ the agents answer *what it means*; the operator decides.
 | What does real technical evidence say? | Evidence agent over a cited NASA corpus |
 | What does this mean in my domain? | Hazard, Crew Safety, Systems, Mission |
 | What did everyone get wrong? | Critic / red-team |
-| Which response should be recommended? | Coordinator (advisory only) |
+| Which response should be recommended? | Deterministic human-preservation policy |
+| How should that choice be explained? | Coordinator (advisory only) |
 | Which response do we take? | **The human operator** |
 
 ## Install and test
 
 ```bash
 pip install -e .            # add ".[granite]" for the IBM watsonx client
-python -m pytest            # 143 tests, no network, no credentials
+python -m pytest            # 152 tests, no network, no credentials
 ```
 
 Phase A is located automatically: an installed `spacecraft_sim` first, then
@@ -71,18 +73,40 @@ each agent returns, the **validator** enforces:
 | R4 | survival or mortality claims must resolve to modeled output or cited evidence |
 | R5 | "BEST ACTION" from anyone but the Coordinator |
 | R6–R8 | a recommendation with no trade-off, no uncertainty, or that takes the decision away from the human |
+| E1–E4 | malformed policy output, missing sources, or lost human authority |
+| E5–E7 | an LLM choice that differs from the deterministic policy or loses policy provenance |
 
-Violations are **surfaced, never silently corrected** — the operator sees that
-an agent tried to assert something unsupported. Module and crew ids (`M2`, `C3`)
-are masked before numeric extraction so they do not trip R1.
+Violations are **surfaced, never silently corrected**. If the Coordinator proposes
+a different action, both its original proposal and the policy-enforced action stay
+in the audit trail. Module and crew ids (`M2`, `C3`) are masked before numeric
+extraction so they do not trip R1.
+
+## Ethical assessment
+
+`src/phase_c/ethics/policy.json` is the operative, versioned source of truth. It uses a
+lexicographic order rather than a compensating score: expected surviving
+returnees, expected survivors, worst-off modeled crew survival, abandoned and
+trapped crew, toxic exposure, and finally hazard containment. Mission assets
+cannot compensate for a lower human outcome. Identity and rank are never read as
+intrinsic life-value weights.
+
+The output is `POLICY_CONSISTENT`, `REVIEW_REQUIRED`, or `BLOCKED`, never
+"morally correct" or a universal ethics percentage. Unresolved equal candidates,
+the deciding tie-break, affected crew ids, source locators, and limitations are
+returned in `DecisionPackage.ethical_assessment`. The human operator remains the
+final authority.
 
 ## Evidence corpus
 
-Nine chunks from six sources, all verified during Phase A calibration: JSC 20584
+Twelve chunks from ten sources. Nine technical chunks were verified during Phase A
+calibration: JSC 20584
 Rev C (SMAC for CO / HCN / HCl), Saffire I and II, NASA-STD-6001B Test 1, NTRS
 20150009509 (IMV flow), NTRS 20030053429 (ISS fire detection), MIL-STD-1629A
-(FMECA). Ingest rejects any citation without a specific locator, so every claim
-is checkable by a human. Every answer must state its **applicability** — ISS
+(FMECA). Three separate policy/governance chunks cover the project-authored human-
+preservation policy, NASA-STD-3001 crew safety, and NIST AI RMF human oversight.
+The latter two do not claim to validate the project's exact tie-break order.
+Ingest rejects any citation without a specific locator, so every claim is
+checkable by a human. Every technical answer must state its **applicability** — ISS
 figures may not transfer to another vehicle, and ground-test combustion data
 does not transfer to microgravity.
 
@@ -121,7 +145,8 @@ Additive; `POST /api/simulate` is untouched.
 - `GET /api/advisor/status` — whether the advisor can run, and why not if it cannot
 - `POST /api/analyze` — runs the pipeline, returns a `DecisionPackage`
 - **Advisor** tab in the results view: recommendation with trade-offs, grounding
-  violations, per-agent findings, critic issues, cited evidence
+  violations, ethical policy status and tie-break, per-agent findings, critic
+  issues, cited technical and policy evidence
 
 The comparison table stays recommendation-free, as Phase B intends. Recommendation
 appears only in the Advisor panel.

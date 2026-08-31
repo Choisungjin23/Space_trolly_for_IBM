@@ -99,6 +99,6 @@ def analyze(
         pa_action.id: spec.id for spec, pa_action, _ in _action_pairs(scenario, emergency)
     }
     package["provenance"]["decision_objective"] = (
-        "maximize_expected_surviving_returnees_under_resource_constraints"
+        "lexicographic_human_preservation_policy_v1"
     )
     return package

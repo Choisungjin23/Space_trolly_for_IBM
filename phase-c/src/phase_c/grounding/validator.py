@@ -16,6 +16,7 @@ an agent attempted an unsupported assertion.
 import re
 
 from phase_c.contracts.evidence import EvidenceAnswer
+from phase_c.contracts.ethics import EthicalAssessment
 from phase_c.contracts.findings import AgentFinding, Claim, GroundingViolation
 from phase_c.grounding.registry import FactRegistry
 
@@ -171,7 +172,11 @@ def validate_finding(
 
 
 def validate_recommendation(
-    recommendation, registry: FactRegistry, *, action_prefix: str | None = None
+    recommendation,
+    registry: FactRegistry,
+    *,
+    action_prefix: str | None = None,
+    ethical_assessment: EthicalAssessment | None = None,
 ) -> list[GroundingViolation]:
     """A recommendation with no trade-off and no uncertainty is rejected — that
     shape is how these systems get over-trusted."""
@@ -205,6 +210,29 @@ def validate_recommendation(
             "BLOCKER",
         )
 
+    if ethical_assessment is not None:
+        expected = ethical_assessment.selected_action_id
+        if expected is not None and recommendation.recommended_action_id != expected:
+            add(
+                "E5_policy_selection_mismatch",
+                f"Recommendation names {recommendation.recommended_action_id!r}, "
+                f"but policy {ethical_assessment.policy_id} selected {expected!r}.",
+                "BLOCKER",
+            )
+        if recommendation.policy_override_applied:
+            add(
+                "E6_coordinator_policy_override",
+                f"The model proposed {recommendation.model_proposed_action_id!r}; "
+                f"the deterministic policy enforced {recommendation.recommended_action_id!r}.",
+                "MAJOR",
+            )
+        if recommendation.policy_id != ethical_assessment.policy_id:
+            add(
+                "E7_policy_provenance_mismatch",
+                "Recommendation does not carry the policy id used by the evaluator.",
+                "BLOCKER",
+            )
+
     finding = AgentFinding(
         agent="coordinator",
         action_id=recommendation.recommended_action_id,
@@ -215,4 +243,48 @@ def validate_recommendation(
             finding, registry, allow_best_action=True, action_prefix=action_prefix
         )
     )
+    return violations
+
+
+def validate_ethical_assessment(
+    assessment: EthicalAssessment, valid_action_ids: set[str]
+) -> list[GroundingViolation]:
+    """Structural checks for the non-LLM policy stage."""
+
+    violations: list[GroundingViolation] = []
+
+    def add(rule: str, detail: str, severity="MAJOR"):
+        violations.append(
+            GroundingViolation(
+                agent="ethics_policy",
+                rule=rule,
+                detail=detail,
+                severity=severity,
+            )
+        )
+
+    if assessment.selected_action_id not in valid_action_ids:
+        add(
+            "E1_unknown_policy_action",
+            f"Policy selected unknown action {assessment.selected_action_id!r}.",
+            "BLOCKER",
+        )
+    if assessment.selected_action_id not in assessment.co_recommended_action_ids:
+        add(
+            "E2_selected_action_not_co_recommended",
+            "The selected action is absent from the policy's surviving candidates.",
+            "BLOCKER",
+        )
+    if not assessment.sources:
+        add(
+            "E3_missing_policy_sources",
+            "The ethical assessment has no checkable policy source.",
+            "BLOCKER",
+        )
+    if not assessment.human_decision_required:
+        add(
+            "E4_ethics_claims_final_authority",
+            "The ethical assessment must preserve human final authority.",
+            "BLOCKER",
+        )
     return violations

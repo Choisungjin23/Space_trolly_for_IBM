@@ -115,6 +115,19 @@ def test_coordinator_cannot_hand_the_decision_to_the_machine(case):
     assert package.recommendation.human_decision_required is True
 
 
+def test_coordinator_cannot_replace_the_policy_selected_action(case):
+    proposed = sound_recommendation("do_nothing")
+    package = Orchestrator(scripted(coordinator=proposed)).run(case)
+
+    assert package.ethical_assessment.selected_action_id == "isolate:M2"
+    assert package.recommendation.recommended_action_id == "isolate:M2"
+    assert package.recommendation.model_proposed_action_id == "do_nothing"
+    assert package.recommendation.policy_override_applied is True
+    assert "E6_coordinator_policy_override" in {
+        violation.rule for violation in package.critic.grounding_violations
+    }
+
+
 def test_critic_issues_are_carried_through(case):
     review = _CriticDraft(
         issues=[

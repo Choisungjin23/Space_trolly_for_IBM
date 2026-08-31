@@ -75,6 +75,58 @@ export interface Recommendation {
   dissent: string[]
   uncertainty: string[]
   human_decision_required: boolean
+  model_proposed_action_id: string | null
+  policy_override_applied: boolean
+  policy_id: string | null
+}
+
+export type EthicsStatus = 'POLICY_CONSISTENT' | 'REVIEW_REQUIRED' | 'BLOCKED'
+export type PolicyCheckStatus = 'PASS' | 'REVIEW' | 'BLOCK'
+
+export interface PolicyCheck {
+  rule_id: string
+  status: PolicyCheckStatus
+  summary: string
+  refs: string[]
+}
+
+export interface ActionEthicsAssessment {
+  action_id: string
+  eligible: boolean
+  expected_returnees: number
+  expected_survivors: number
+  minimum_crew_survival_probability: number | null
+  abandoned_crew_count: number
+  trapped_crew_count: number
+  maximum_smac_dose_fraction: number | null
+  smac_exceeded_module_count: number
+  hazard_reached_module_count: number
+  affected_crew_ids: string[]
+  policy_checks: PolicyCheck[]
+  co_recommended: boolean
+}
+
+export interface TieBreakStep {
+  criterion: string
+  direction: 'MAXIMIZE' | 'MINIMIZE'
+  best_value: number
+  tie_margin: number
+  remaining_action_ids: string[]
+  explanation: string
+}
+
+export interface EthicalAssessment {
+  policy_id: string
+  policy_version: string
+  status: EthicsStatus
+  selected_action_id: string | null
+  co_recommended_action_ids: string[]
+  selection_basis: string
+  action_assessments: ActionEthicsAssessment[]
+  tie_break_steps: TieBreakStep[]
+  sources: EvidenceCitation[]
+  limitations: string[]
+  human_decision_required: boolean
 }
 
 export interface DecisionPackage {
@@ -83,6 +135,7 @@ export interface DecisionPackage {
   evidence: EvidenceAnswer[]
   critic: CriticReview
   recommendation: Recommendation | null
+  ethical_assessment: EthicalAssessment | null
   provenance: Record<string, unknown>
 }
 

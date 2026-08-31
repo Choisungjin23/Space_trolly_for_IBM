@@ -1,0 +1,99 @@
+{
+  "policy_id": "ASSUMED_HUMAN_PRESERVATION_POLICY_V1",
+  "version": "1.0.0",
+  "status": "POC",
+  "title": "Human-preservation advisory policy",
+  "source_ids": [
+    "PROJECT-HUMAN-PRESERVATION-POLICY-V1",
+    "NASA-STD-3001-V1",
+    "NIST-AI-100-1"
+  ],
+  "prohibited_personal_attributes": [
+    "name",
+    "gender",
+    "nationality",
+    "social_status",
+    "rank_as_intrinsic_worth"
+  ],
+  "rules": [
+    {
+      "rule_id": "HP-001",
+      "title": "Human outcomes precede mission assets",
+      "description": "Compare surviving returnees and survivors before system, equipment, or mission preservation.",
+      "source_ids": ["PROJECT-HUMAN-PRESERVATION-POLICY-V1", "NASA-STD-3001-V1"]
+    },
+    {
+      "rule_id": "HP-002",
+      "title": "Equal intrinsic worth",
+      "description": "Do not use identity or rank as intrinsic life-value weights; operational capability may affect simulated outcomes only.",
+      "source_ids": ["PROJECT-HUMAN-PRESERVATION-POLICY-V1"]
+    },
+    {
+      "rule_id": "HO-001",
+      "title": "Human authority",
+      "description": "The system advises and preserves the operator's final decision and an auditable policy trail.",
+      "source_ids": ["PROJECT-HUMAN-PRESERVATION-POLICY-V1", "NIST-AI-100-1"]
+    },
+    {
+      "rule_id": "UN-001",
+      "title": "No false moral precision",
+      "description": "Report policy consistency, uncertainty, and unresolved ties instead of a universal numerical ethics score.",
+      "source_ids": ["PROJECT-HUMAN-PRESERVATION-POLICY-V1", "NIST-AI-100-1"]
+    }
+  ],
+  "criteria": [
+    {
+      "field": "expected_returnees",
+      "direction": "MAXIMIZE",
+      "tie_margin": 0.000001,
+      "description": "Prefer the action with more expected surviving returnees under the declared model."
+    },
+    {
+      "field": "expected_survivors",
+      "direction": "MAXIMIZE",
+      "tie_margin": 0.000001,
+      "description": "When return outcomes tie, prefer the action that keeps more people alive."
+    },
+    {
+      "field": "minimum_crew_survival_probability",
+      "direction": "MAXIMIZE",
+      "tie_margin": 0.000001,
+      "description": "When totals tie, improve the modeled outcome of the worst-off crew member."
+    },
+    {
+      "field": "abandoned_crew_count",
+      "direction": "MINIMIZE",
+      "tie_margin": 0,
+      "description": "Prefer fewer explicitly abandoned crew members."
+    },
+    {
+      "field": "trapped_crew_count",
+      "direction": "MINIMIZE",
+      "tie_margin": 0,
+      "description": "Prefer fewer trapped crew members."
+    },
+    {
+      "field": "maximum_smac_dose_fraction",
+      "direction": "MINIMIZE",
+      "tie_margin": 0.000001,
+      "description": "When survival outputs tie, reduce the highest individual toxic-exposure dose."
+    },
+    {
+      "field": "smac_exceeded_module_count",
+      "direction": "MINIMIZE",
+      "tie_margin": 0,
+      "description": "Prefer exposing fewer modules above the modeled contaminant threshold."
+    },
+    {
+      "field": "hazard_reached_module_count",
+      "direction": "MINIMIZE",
+      "tie_margin": 0,
+      "description": "Use hazard containment only after direct human outcomes tie."
+    }
+  ],
+  "limitations": [
+    "This is a project-authored PoC policy, not a scientifically validated universal moral rule.",
+    "NASA-STD-3001 supports crew health and safety requirements but does not prescribe this tie-break order.",
+    "Modeled survival and return values inherit every limitation and assumption of Phase A."
+  ]
+}

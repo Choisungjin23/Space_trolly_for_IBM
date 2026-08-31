@@ -77,6 +77,11 @@ class Recommendation(BaseModel):
     dissent: list[str] = Field(default_factory=list)
     uncertainty: list[str] = Field(default_factory=list)
     human_decision_required: bool = True
+    # The coordinator may phrase the recommendation, but it cannot replace the
+    # deterministic policy winner.  Both values stay visible if it tries.
+    model_proposed_action_id: str | None = None
+    policy_override_applied: bool = False
+    policy_id: str | None = None
 
 
 class DecisionPackage(BaseModel):
@@ -87,9 +92,11 @@ class DecisionPackage(BaseModel):
     evidence: list["EvidenceAnswer"] = Field(default_factory=list)  # noqa: F821
     critic: CriticReview = Field(default_factory=CriticReview)
     recommendation: Recommendation | None = None
+    ethical_assessment: "EthicalAssessment | None" = None
     provenance: dict = Field(default_factory=dict)
 
 
 from phase_c.contracts.evidence import EvidenceAnswer  # noqa: E402
+from phase_c.contracts.ethics import EthicalAssessment  # noqa: E402
 
 DecisionPackage.model_rebuild()

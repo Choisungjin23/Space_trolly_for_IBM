@@ -6,6 +6,8 @@ not transfer to a different vehicle, and ground-test combustion data does not
 transfer to microgravity.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -24,6 +26,19 @@ class EvidenceChunk(BaseModel):
     text: str
     citation: EvidenceCitation
     keywords: list[str] = Field(default_factory=list)
+    document_type: Literal["TECHNICAL", "ETHICAL_POLICY", "BACKGROUND"] = "TECHNICAL"
+    authority_level: Literal[
+        "MISSION_RULE",
+        "AGENCY_STANDARD",
+        "PROJECT_POLICY",
+        "ACADEMIC",
+        "TECHNICAL_SOURCE",
+    ] = "TECHNICAL_SOURCE"
+    binding: bool = False
+    version: str = ""
+    effective_date: str = ""
+    scope: str = ""
+    rule_ids: list[str] = Field(default_factory=list)
 
 
 class EvidenceAnswer(BaseModel):

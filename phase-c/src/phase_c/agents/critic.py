@@ -10,6 +10,7 @@ import json
 from pydantic import BaseModel, Field
 
 from phase_c.contracts.analysis import ActionAnalysis, CaseAnalysis
+from phase_c.contracts.ethics import EthicalAssessment
 from phase_c.contracts.findings import (
     AgentFinding,
     CriticIssue,
@@ -37,6 +38,10 @@ Look specifically for:
 8. Claims resting on `source: "derived"` events presented as engine output.
 9. Survival or mortality claims that lack a model-output ref, confuse sampled
    counts with probabilities, or present ASSUMED estimates as clinical fact.
+10. An ethical assessment described as universally moral, scientifically
+    proven, or sourced from NASA when its exact ordering is project-authored.
+11. A `REVIEW_REQUIRED` policy result, unresolved co-recommendation, or policy
+    limitation that the coordinator must not hide.
 
 For each problem emit an issue with severity BLOCKER, MAJOR or MINOR, the agent
 responsible, and a concrete suggested correction. If a finding is sound, do not
@@ -68,6 +73,7 @@ class CriticAgent:
         case: CaseAnalysis,
         *,
         violations: list[GroundingViolation] | None = None,
+        ethical_assessment: EthicalAssessment | None = None,
     ) -> CriticReview:
         violations = list(violations or [])
 
@@ -79,6 +85,11 @@ class CriticAgent:
             "machine_detected_violations": [
                 v.model_dump(mode="json") for v in violations
             ],
+            "ethical_assessment": (
+                ethical_assessment.decision_context()
+                if ethical_assessment is not None
+                else None
+            ),
         }
 
         draft = self.llm.complete(

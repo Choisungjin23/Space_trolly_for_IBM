@@ -15,6 +15,7 @@ import {
 import type { ActionSimulationResult, ActionSpec } from '../../types/simulator'
 import { StatusPill } from '../results/StatDisplay'
 import { IconAdvisory } from '../shared/Icons'
+import EthicalAssessmentCard from './EthicalAssessmentCard'
 import {
   CREW_LOOK,
   EQUIPMENT_LOOK,
@@ -225,9 +226,10 @@ export default function AdvisorPanel({
             maxWidth: '62ch',
           }}
         >
-          Seven agents read the Phase A simulation output: four specialists, a NASA
-          evidence retriever, a red-team critic, and a coordinator. Every number they
-          state is machine-checked against the simulation.
+          A deterministic human-preservation policy ranks the Phase A outcomes. Seven
+          agents then explain the result: four specialists, a NASA evidence retriever,
+          a red-team critic, and a coordinator. Every number they state is
+          machine-checked against the simulation.
         </p>
         <div style={{ marginTop: 20, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <button
@@ -319,7 +321,7 @@ export default function AdvisorPanel({
               style={{ color: 'var(--ink-3)', fontSize: 10.5, marginTop: 7, letterSpacing: '.08em' }}
             >
               {progress
-                ? `Agent ${Math.min(progress.done + 1, progress.total)} of ${progress.total}`
+                ? `Stage ${Math.min(progress.done + 1, progress.total)} of ${progress.total}`
                 : 'Running the simulation the agents will read'}
             </div>
           </div>
@@ -334,6 +336,10 @@ export default function AdvisorPanel({
 
       {pkg && (
         <>
+          {pkg.ethical_assessment && (
+            <EthicalAssessmentCard assessment={pkg.ethical_assessment} />
+          )}
+
           {pkg.recommendation && (
             <div
               style={{
@@ -372,6 +378,23 @@ export default function AdvisorPanel({
               <code style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                 {pkg.recommendation.recommended_action_id}
               </code>
+
+              {pkg.recommendation.policy_override_applied && (
+                <div
+                  style={{
+                    marginTop: 13,
+                    padding: '9px 12px',
+                    border: '1px solid var(--amber)',
+                    color: 'var(--amber)',
+                    fontSize: 11.5,
+                  }}
+                >
+                  The language model proposed{' '}
+                  <code>{pkg.recommendation.model_proposed_action_id}</code>; the
+                  deterministic policy enforced this action. The mismatch remains in
+                  the audit trail.
+                </div>
+              )}
 
               {/* Consequences come from the simulation, not from anything an
                   agent wrote, so they stand even where a claim is disputed. */}

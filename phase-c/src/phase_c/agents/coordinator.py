@@ -9,6 +9,7 @@ import json
 
 from phase_c.contracts.analysis import CaseAnalysis
 from phase_c.contracts.evidence import EvidenceAnswer
+from phase_c.contracts.ethics import EthicalAssessment
 from phase_c.contracts.findings import AgentFinding, CriticReview, Recommendation
 from phase_c.llm.base import LLMClient
 
@@ -20,7 +21,9 @@ action. You synthesize the specialist findings, the evidence, and the critic's
 objections into one structured recommendation for a human operator.
 
 Requirements:
-1. `recommended_action_id` must be one of the action ids present in the DATA.
+1. `recommended_action_id` must equal
+   `ethical_assessment.selected_action_id`. The policy evaluator already ranked
+   the actions in code; you explain that choice and never replace it.
 2. `tradeoffs` must contain at least one entry. Name what the recommended action
    GIVES UP against a specific alternative, not only what it gains. If you
    cannot find a cost, you have not looked hard enough.
@@ -56,6 +59,9 @@ Requirements:
    before portable equipment; consider whether an alternate crew ordering
    improves expected surviving returnees while preserving indispensable return
    equipment. Include the negative feedback from each hazardous passage.
+10. Describe the result as "consistent with the declared PoC policy", never as
+    universally ethical, morally correct, or scientifically proven. Carry any
+    `REVIEW_REQUIRED` status and co-recommended actions into uncertainty.
 
 The DATA is trimmed for comparison: each action lists only the equipment whose
 state is not nominal, and the per-action timeline is omitted. Everything shown
@@ -108,6 +114,7 @@ class CoordinatorAgent:
         findings: list[AgentFinding],
         critic: CriticReview,
         evidence: list[EvidenceAnswer],
+        ethical_assessment: EthicalAssessment,
     ) -> dict:
         """Everything the coordinator is shown.
 
@@ -122,6 +129,7 @@ class CoordinatorAgent:
             "findings": [f.model_dump(mode="json") for f in findings],
             "critic": critic.model_dump(mode="json"),
             "evidence": [e.model_dump(mode="json") for e in evidence],
+            "ethical_assessment": ethical_assessment.decision_context(),
         }
 
     def recommend(
@@ -130,8 +138,9 @@ class CoordinatorAgent:
         findings: list[AgentFinding],
         critic: CriticReview,
         evidence: list[EvidenceAnswer],
+        ethical_assessment: EthicalAssessment,
     ) -> Recommendation:
-        payload = self.payload(case, findings, critic, evidence)
+        payload = self.payload(case, findings, critic, evidence, ethical_assessment)
 
         recommendation = self.llm.complete(
             system=COORDINATOR_RULES,
@@ -143,7 +152,27 @@ class CoordinatorAgent:
             ),
             schema=Recommendation,
         )
+        # The policy winner is computed before the LLM runs. Preserve the
+        # model's proposed id for audit, then enforce the policy id explicitly.
+        proposed_id = recommendation.recommended_action_id
+        policy_id = ethical_assessment.selected_action_id or proposed_id
+        override_applied = proposed_id != policy_id
+        dissent = list(recommendation.dissent)
+        if override_applied:
+            dissent.append(
+                f"Coordinator proposed {proposed_id}; deterministic policy "
+                f"{ethical_assessment.policy_id} selected {policy_id}."
+            )
+
         # Copy rather than mutate, for the same reason as the specialists.
         return recommendation.model_copy(
-            update={"human_decision_required": True}, deep=True
+            update={
+                "recommended_action_id": policy_id,
+                "human_decision_required": True,
+                "model_proposed_action_id": proposed_id,
+                "policy_override_applied": override_applied,
+                "policy_id": ethical_assessment.policy_id,
+                "dissent": dissent,
+            },
+            deep=True,
         )
